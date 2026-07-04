@@ -66,6 +66,8 @@ interface ToastItem {
 interface AppState {
   dataset: MockDataset;
   loading: boolean;
+  loadError: string | null;
+  retryLoad: () => void;
   signOut: () => Promise<void>;
 
   /** "all" = Overview (semua project tercampur), selain itu id project aktif. */
@@ -131,6 +133,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [focusMode, setFocusModeState] = useState(false);
   const [dataset, setDataset] = useState<MockDataset>(EMPTY_DATASET);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryTick, setRetryTick] = useState(0);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [taskForm, setTaskForm] = useState<{ open: boolean; taskId: string | null; defaultProjectId: string | null }>({
@@ -160,6 +164,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [pushToast]);
 
   // Load awal + hidrasi preferensi lokal (scope/focus mode) + auto-seed 8 project default.
+  // Catatan: middleware sudah menjamin ada sesi valid untuk semua rute selain /login,
+  // jadi di sini kita TIDAK menggerbangi lewat supabase.auth.getUser() lagi (itu sempat
+  // jadi sumber bug: kalau getUser() balik null karena race/timing, load diam-diam
+  // berhenti tanpa error apa pun — dataset kelihatan "kosong" padahal sebenarnya gagal
+  // dimuat). Sekarang fetchDataset() langsung dicoba, dan SETIAP kegagalan (termasuk
+  // dari RPC seed) ditangkap dan ditampilkan lewat loadError, bukan didiamkan.
   /* eslint-disable react-hooks/set-state-in-effect -- hidrasi sekali dari localStorage
      setelah mount, bukan sinkronisasi berulang. Sengaja tidak dipindah ke lazy
      initializer supaya SSR/first paint konsisten (localStorage tidak tersedia
@@ -172,26 +182,26 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     if (scope) setActiveProjectIdState(scope);
     if (focus) setFocusModeState(focus === "1");
 
+    setLoading(true);
+    setLoadError(null);
+
     (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      let data = await fetchDataset();
-      if (data.projects.length === 0) {
-        try {
+      try {
+        let data = await fetchDataset();
+        if (data.projects.length === 0) {
           await dbSeedDefaultProjects();
           data = await fetchDataset();
-        } catch (err) {
-          console.error("Gagal seed default projects", err);
         }
-      }
-      if (!cancelled) {
-        setDataset(data);
-        setLoading(false);
+        if (!cancelled) {
+          setDataset(data);
+        }
+      } catch (err) {
+        console.error("Gagal memuat data awal", err);
+        if (!cancelled) {
+          setLoadError(err instanceof Error ? err.message : "Gagal memuat data dari server.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
 
@@ -208,8 +218,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [retryTick]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const retryLoad = useCallback(() => setRetryTick((t) => t + 1), []);
 
   // PAGE-F2: poll reminder pending tiap 60 detik, toast sekali untuk tiap id baru
   // (get_pending_reminders() sudah memfilter remind_at <= now, jadi "baru muncul di daftar" = "baru jatuh tempo").
@@ -448,6 +460,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const value: AppState = {
     dataset,
     loading,
+    loadError,
+    retryLoad,
     signOut,
     activeProjectId,
     setActiveProjectId,
