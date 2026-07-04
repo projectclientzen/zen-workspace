@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,14 +14,76 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ProjectFormDialog } from "@/components/layout/project-form-dialog";
 import { useAppState } from "@/lib/app-state";
+import { createClient } from "@/lib/supabase/client";
 import type { RecurringFrequency } from "@/lib/types";
 
 const NONE = "__none__";
 const WEEKDAY_LABEL = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
+type PushStatus = "idle" | "granted" | "denied" | "unsupported";
+
+function usePushNotification() {
+  const [status, setStatus] = useState<PushStatus>("idle");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setStatus("unsupported");
+      return;
+    }
+    if (Notification.permission === "granted") setStatus("granted");
+    else if (Notification.permission === "denied") setStatus("denied");
+  }, []);
+
+  const enable = async () => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
+    setLoading(true);
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") { setStatus("denied"); return; }
+
+      const reg = await navigator.serviceWorker.ready;
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) { setStatus("granted"); return; }
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidKey,
+      });
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const subJson = sub.toJSON();
+        await supabase.from("push_subscriptions").upsert({
+          user_id: user.id,
+          endpoint: sub.endpoint,
+          p256dh: subJson.keys?.p256dh ?? "",
+          auth: subJson.keys?.auth ?? "",
+        }, { onConflict: "endpoint" });
+      }
+      setStatus("granted");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendTest = async () => {
+    if (status !== "granted") return;
+    const reg = await navigator.serviceWorker.ready;
+    reg.showNotification("Zen · Test Notifikasi", {
+      body: "Push notification aktif dan berjalan.",
+      icon: "/icons/icon-192.png",
+    });
+  };
+
+  return { status, loading, enable, sendTest };
+}
+
 export default function SettingsPage() {
   const { dataset, addRule, toggleRule, updateProject, pushToast, signOut } = useAppState();
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const push = usePushNotification();
 
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState(NONE);
@@ -165,6 +227,31 @@ export default function SettingsPage() {
           {dataset.projects.length === 0 && (
             <div className="py-4 text-center text-[12px] text-muted-foreground">Belum ada project.</div>
           )}
+        </div>
+      </Card>
+
+      <Card className="mt-3.5 gap-3 p-4">
+        <div className="text-[13px] font-bold">Push Notification</div>
+        <div className="text-[11px] leading-relaxed text-muted-foreground">
+          Izinkan notifikasi untuk reminder &amp; digest pagi. Reminder selalu tampil in-app juga.
+        </div>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {push.status !== "unsupported" && push.status !== "granted" && (
+            <Button size="sm" onClick={push.enable} disabled={push.loading || push.status === "denied"}>
+              {push.loading ? "Memproses…" : "Aktifkan"}
+            </Button>
+          )}
+          {push.status === "granted" && (
+            <Button size="sm" variant="outline" onClick={push.sendTest}>Kirim tes</Button>
+          )}
+          <span className={`text-[11px] font-semibold ${
+            push.status === "granted" ? "text-primary" :
+            push.status === "denied" ? "text-destructive" : "text-muted-foreground"
+          }`}>
+            {push.status === "granted" ? "Aktif ✓" :
+             push.status === "denied" ? "Diblokir browser — reminder tetap in-app." :
+             push.status === "unsupported" ? "Browser tidak mendukung." : "Belum aktif"}
+          </span>
         </div>
       </Card>
 

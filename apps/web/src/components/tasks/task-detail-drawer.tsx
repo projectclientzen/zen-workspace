@@ -12,7 +12,7 @@ import {
 import { PomodoroTimer } from "@/components/tasks/pomodoro-timer";
 import { TimeBlockScheduler } from "@/components/tasks/time-block-scheduler";
 import { useAppState } from "@/lib/app-state";
-import type { Priority, TaskStatus } from "@/lib/types";
+import type { PomodoroSession, Priority, TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -25,6 +25,20 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
 ];
+
+function FocusMinutesBadge({ taskId, sessions }: { taskId: string; sessions: PomodoroSession[] }) {
+  const totalMins = sessions
+    .filter((s) => s.task_id === taskId && s.kind === "focus" && s.completed)
+    .reduce((sum, s) => sum + s.planned_minutes, 0);
+  if (totalMins === 0) return null;
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[12px]">
+      <span className="text-primary">⏱</span>
+      <span className="font-semibold text-foreground">{totalMins} menit fokus</span>
+      <span className="text-muted-foreground">total dari Pomodoro</span>
+    </div>
+  );
+}
 
 function fmtDueFull(iso: string | null) {
   if (!iso) return "Tanpa due";
@@ -164,6 +178,7 @@ export function TaskDetailDrawer() {
                 Edit detail lengkap
               </Button>
 
+              <FocusMinutesBadge taskId={task.id} sessions={dataset.pomodoroSessions} />
               <PomodoroTimer taskId={task.id} />
               <TimeBlockScheduler taskId={task.id} />
 

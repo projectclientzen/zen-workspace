@@ -43,13 +43,15 @@ export function getAttentionSummary(dataset: MockDataset, projectId: string | "a
 
 export function getProjectStats(dataset: MockDataset): ProjectStat[] {
   return dataset.projects.map((p) => {
-    const tasks = dataset.tasks.filter((t) => t.project_id === p.id);
+    const tasks = dataset.tasks.filter((t) => t.project_id === p.id && t.status !== "dropped");
     return {
       project_id: p.id,
       project_name: p.name,
       open: tasks.filter(isOpenTask).length,
       due_today: tasks.filter((t) => isDueToday(t) && isOpenTask(t)).length,
       overdue: tasks.filter((t) => t.is_overdue).length,
+      done: tasks.filter((t) => t.status === "done").length,
+      total: tasks.length,
     };
   });
 }

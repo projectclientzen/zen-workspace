@@ -100,6 +100,8 @@ export interface ProjectStat {
   open: number;
   due_today: number;
   overdue: number;
+  done: number;
+  total: number;
 }
 
 export interface WeeklyReview {
