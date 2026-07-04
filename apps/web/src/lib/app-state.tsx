@@ -9,22 +9,34 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { buildMockDataset } from "@/lib/mock/build";
+import { createClient } from "@/lib/supabase/client";
+import {
+  dbAddIdea,
+  dbAddMetric,
+  dbAddRule,
+  dbAddTask,
+  dbConvertIdeaToTask,
+  dbDeleteIdea,
+  dbDismissReminder,
+  dbSaveIdeaVersion,
+  dbSaveWeeklyReview,
+  dbSeedDefaultProjects,
+  dbToggleRule,
+  dbUpdateIdea,
+  dbUpdateTask,
+  dbUpsertCheckin,
+  fetchDataset,
+} from "@/lib/supabase/queries";
 import type {
   Idea,
-  IdeaHistoryEntry,
   Metric,
-  MetricCheckin,
   MockDataset,
-  MockScenario,
   Priority,
-  Reminder,
   RecurringRule,
   Task,
   WeeklyReview,
 } from "@/lib/types";
 
-const SCENARIO_KEY = "zen-scenario";
 const SCOPE_KEY = "zen-scope";
 const FOCUS_KEY = "zen-focus";
 
@@ -34,14 +46,17 @@ function nextId(prefix: string) {
   return `${prefix}-${Date.now()}-${idCounter}`;
 }
 
-function recomputeOverdue(task: Task): Task {
-  const isOverdue =
-    task.due_at != null &&
-    task.status !== "done" &&
-    task.status !== "dropped" &&
-    new Date(task.due_at) < new Date();
-  return { ...task, is_overdue: isOverdue };
-}
+const EMPTY_DATASET: MockDataset = {
+  projects: [],
+  tasks: [],
+  recurringRules: [],
+  reminders: [],
+  metrics: [],
+  metricCheckins: [],
+  weeklyReviews: [],
+  ideas: [],
+  ideaHistory: [],
+};
 
 interface ToastItem {
   id: string;
@@ -49,9 +64,10 @@ interface ToastItem {
 }
 
 interface AppState {
-  scenario: MockScenario;
-  setScenario: (s: MockScenario) => void;
   dataset: MockDataset;
+  loading: boolean;
+  signOut: () => Promise<void>;
+
   /** "all" = Overview (semua project tercampur), selain itu id project aktif. */
   activeProjectId: string | "all";
   setActiveProjectId: (id: string | "all") => void;
@@ -63,16 +79,8 @@ interface AppState {
   toasts: ToastItem[];
   pushToast: (msg: string) => void;
 
-  // UI: drawer detail task & form buat/edit task, dipanggil dari halaman mana pun
-  openTaskId: string | null;
-  openTaskDetail: (id: string) => void;
-  closeTaskDetail: () => void;
-  taskForm: { open: boolean; taskId: string | null; defaultProjectId: string | null };
-  openTaskForm: (opts?: { taskId?: string; defaultProjectId?: string | null }) => void;
-  closeTaskForm: () => void;
-
   // Tasks
-  addTask: (input: Partial<Task> & { title: string }) => Task;
+  addTask: (input: Partial<Task> & { title: string }) => void;
   updateTask: (id: string, patch: Partial<Task>) => void;
   toggleFocusToday: (id: string) => void;
   setTaskStatus: (id: string, status: Task["status"]) => void;
@@ -81,18 +89,18 @@ interface AppState {
   postponeToTomorrow: (id: string) => void;
 
   // Ideas
-  addIdea: (input: Partial<Idea> & { title: string }) => Idea;
+  addIdea: (input: Partial<Idea> & { title: string }) => void;
   updateIdea: (id: string, patch: Partial<Idea>) => void;
   deleteIdea: (id: string) => void;
   saveIdeaVersion: (id: string) => void;
-  convertIdeaToTask: (id: string) => Task | null;
+  convertIdeaToTask: (id: string) => void;
 
   // Metrics
-  addMetric: (input: Partial<Metric> & { name: string }) => Metric;
+  addMetric: (input: Partial<Metric> & { name: string }) => void;
   upsertCheckin: (metricId: string, date: string, value: number | boolean, note?: string | null) => void;
 
   // Recurring rules
-  addRule: (input: Partial<RecurringRule> & { title_template: string; frequency: RecurringRule["frequency"] }) => RecurringRule;
+  addRule: (input: Partial<RecurringRule> & { title_template: string; frequency: RecurringRule["frequency"] }) => void;
   toggleRule: (id: string) => void;
 
   // Reminders
@@ -105,15 +113,24 @@ interface AppState {
     periodEnd: string,
     patch: Partial<Pick<WeeklyReview, "done_summary" | "missed_summary" | "carry_over" | "next_focus">>,
   ) => void;
+
+  // UI: drawer detail task & form buat/edit task, dipanggil dari halaman mana pun
+  openTaskId: string | null;
+  openTaskDetail: (id: string) => void;
+  closeTaskDetail: () => void;
+  taskForm: { open: boolean; taskId: string | null; defaultProjectId: string | null };
+  openTaskForm: (opts?: { taskId?: string; defaultProjectId?: string | null }) => void;
+  closeTaskForm: () => void;
 }
 
 const AppStateContext = createContext<AppState | null>(null);
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
-  const [scenario, setScenarioState] = useState<MockScenario>("normal");
+  const supabase = createClient();
   const [activeProjectId, setActiveProjectIdState] = useState<string | "all">("all");
   const [focusMode, setFocusModeState] = useState(false);
-  const [dataset, setDataset] = useState<MockDataset>(() => buildMockDataset("normal"));
+  const [dataset, setDataset] = useState<MockDataset>(EMPTY_DATASET);
+  const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [taskForm, setTaskForm] = useState<{ open: boolean; taskId: string | null; defaultProjectId: string | null }>({
@@ -121,23 +138,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     taskId: null,
     defaultProjectId: null,
   });
-
-  /* eslint-disable react-hooks/set-state-in-effect -- hidrasi sekali dari localStorage
-     setelah mount, bukan sinkronisasi berulang. Sengaja tidak dipindah ke lazy
-     initializer supaya SSR/first paint konsisten (localStorage tidak tersedia
-     di server) dan tidak memicu hydration mismatch. */
-  useEffect(() => {
-    const s = localStorage.getItem(SCENARIO_KEY) as MockScenario | null;
-    const scope = localStorage.getItem(SCOPE_KEY);
-    const focus = localStorage.getItem(FOCUS_KEY);
-    if (s === "normal" || s === "overdue" || s === "empty") {
-      setScenarioState(s);
-      setDataset(buildMockDataset(s));
-    }
-    if (scope) setActiveProjectIdState(scope);
-    if (focus) setFocusModeState(focus === "1");
-  }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const pushToast = useCallback((msg: string) => {
     const id = nextId("toast");
@@ -147,30 +147,88 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }, 3200);
   }, []);
 
-  // PAGE-F2: reminder yang remind_at-nya lewat tampil sebagai toast sekali saja
-  // (tanpa mengubah status — tetap "pending" sampai user dismiss dari notification center).
+  const refresh = useCallback(async () => {
+    try {
+      const data = await fetchDataset();
+      setDataset(data);
+      return data;
+    } catch (err) {
+      console.error(err);
+      pushToast("Gagal memuat data dari server.");
+      return null;
+    }
+  }, [pushToast]);
+
+  // Load awal + hidrasi preferensi lokal (scope/focus mode) + auto-seed 8 project default.
+  /* eslint-disable react-hooks/set-state-in-effect -- hidrasi sekali dari localStorage
+     setelah mount, bukan sinkronisasi berulang. Sengaja tidak dipindah ke lazy
+     initializer supaya SSR/first paint konsisten (localStorage tidak tersedia
+     di server) dan tidak memicu hydration mismatch. */
+  useEffect(() => {
+    let cancelled = false;
+
+    const scope = localStorage.getItem(SCOPE_KEY);
+    const focus = localStorage.getItem(FOCUS_KEY);
+    if (scope) setActiveProjectIdState(scope);
+    if (focus) setFocusModeState(focus === "1");
+
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      let data = await fetchDataset();
+      if (data.projects.length === 0) {
+        try {
+          await dbSeedDefaultProjects();
+          data = await fetchDataset();
+        } catch (err) {
+          console.error("Gagal seed default projects", err);
+        }
+      }
+      if (!cancelled) {
+        setDataset(data);
+        setLoading(false);
+      }
+    })();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setDataset(EMPTY_DATASET);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // PAGE-F2: poll reminder pending tiap 60 detik, toast sekali untuk tiap id baru
+  // (get_pending_reminders() sudah memfilter remind_at <= now, jadi "baru muncul di daftar" = "baru jatuh tempo").
   const toastedReminderIds = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const check = () => {
-      const now = Date.now();
-      for (const r of dataset.reminders) {
-        if (r.status !== "pending") continue;
-        if (new Date(r.remind_at).getTime() > now) continue;
-        if (toastedReminderIds.current.has(r.id)) continue;
-        toastedReminderIds.current.add(r.id);
-        pushToast(r.title);
-      }
-    };
-    check();
-    const interval = setInterval(check, 30_000);
-    return () => clearInterval(interval);
+    for (const r of dataset.reminders) {
+      if (toastedReminderIds.current.has(r.id)) continue;
+      toastedReminderIds.current.add(r.id);
+      pushToast(r.title);
+    }
   }, [dataset.reminders, pushToast]);
 
-  const setScenario = (s: MockScenario) => {
-    setScenarioState(s);
-    setDataset(buildMockDataset(s));
-    localStorage.setItem(SCENARIO_KEY, s);
-  };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refresh();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [refresh]);
+
   const setActiveProjectId = (id: string | "all") => {
     setActiveProjectIdState(id);
     localStorage.setItem(SCOPE_KEY, id);
@@ -178,50 +236,46 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const setFocusMode = (v: boolean) => {
     setFocusModeState(v);
     localStorage.setItem(FOCUS_KEY, v ? "1" : "0");
-    // Focus Mode mengunci ke satu project — kalau scope masih "all", kunci ke project pertama.
     if (v && activeProjectId === "all" && dataset.projects[0]) {
       setActiveProjectId(dataset.projects[0].id);
     }
   };
   const toggleFocusMode = () => setFocusMode(!focusMode);
 
-  // ---------- Tasks ----------
-  const addTask = useCallback(
-    (input: Partial<Task> & { title: string }): Task => {
-      const projectName =
-        input.project_id != null
-          ? dataset.projects.find((p) => p.id === input.project_id)?.name ?? null
-          : null;
-      const task = recomputeOverdue({
-        id: nextId("t"),
-        project_id: input.project_id ?? null,
-        project_name: projectName,
-        title: input.title,
-        notes: input.notes ?? null,
-        link: input.link ?? null,
-        image_path: input.image_path ?? null,
-        status: input.status ?? "todo",
-        priority: input.priority ?? "medium",
-        due_at: input.due_at ?? null,
-        is_focus_today: input.is_focus_today ?? false,
-        is_overdue: false,
-        source: input.source ?? (input.project_id ? "manual" : "inbox"),
-        recurring_rule_id: input.recurring_rule_id ?? null,
-        completed_at: null,
-        created_at: new Date().toISOString(),
-      });
-      setDataset((prev) => ({ ...prev, tasks: [task, ...prev.tasks] }));
-      return task;
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Bungkus mutasi Supabase: jalankan, lalu refresh dataset; kalau gagal, kasih toast + tetap refresh (resync). */
+  const runMutation = useCallback(
+    (job: Promise<unknown>, failMsg: string) => {
+      job
+        .then(() => refresh())
+        .catch((err) => {
+          console.error(err);
+          pushToast(failMsg);
+          refresh();
+        });
     },
-    [dataset.projects],
+    [refresh, pushToast],
   );
 
-  const updateTask = useCallback((id: string, patch: Partial<Task>) => {
-    setDataset((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((t) => (t.id === id ? recomputeOverdue({ ...t, ...patch }) : t)),
-    }));
-  }, []);
+  // ---------- Tasks ----------
+  const addTask = useCallback(
+    (input: Partial<Task> & { title: string }) => {
+      runMutation(dbAddTask(input), "Gagal membuat task.");
+    },
+    [runMutation],
+  );
+
+  const updateTask = useCallback(
+    (id: string, patch: Partial<Task>) => {
+      runMutation(dbUpdateTask(id, patch), "Gagal menyimpan perubahan task.");
+    },
+    [runMutation],
+  );
 
   const toggleFocusToday = useCallback(
     (id: string) => {
@@ -270,159 +324,96 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
 
   // ---------- Ideas ----------
-  const addIdea = useCallback((input: Partial<Idea> & { title: string }): Idea => {
-    const idea: Idea = {
-      id: nextId("i"),
-      project_id: input.project_id ?? null,
-      title: input.title,
-      body: input.body ?? null,
-      link: input.link ?? null,
-      image_path: input.image_path ?? null,
-      created_at: new Date().toISOString(),
-    };
-    setDataset((prev) => ({ ...prev, ideas: [idea, ...prev.ideas] }));
-    return idea;
-  }, []);
+  const addIdea = useCallback(
+    (input: Partial<Idea> & { title: string }) => {
+      runMutation(dbAddIdea(input), "Gagal menyimpan ide.");
+    },
+    [runMutation],
+  );
 
-  const updateIdea = useCallback((id: string, patch: Partial<Idea>) => {
-    setDataset((prev) => ({
-      ...prev,
-      ideas: prev.ideas.map((i) => (i.id === id ? { ...i, ...patch } : i)),
-    }));
-  }, []);
+  const updateIdea = useCallback(
+    (id: string, patch: Partial<Idea>) => {
+      runMutation(dbUpdateIdea(id, patch), "Gagal menyimpan ide.");
+    },
+    [runMutation],
+  );
 
-  const deleteIdea = useCallback((id: string) => {
-    setDataset((prev) => ({
-      ...prev,
-      ideas: prev.ideas.filter((i) => i.id !== id),
-      ideaHistory: prev.ideaHistory.filter((h) => h.idea_id !== id),
-    }));
-  }, []);
+  const deleteIdea = useCallback(
+    (id: string) => {
+      runMutation(dbDeleteIdea(id), "Gagal menghapus ide.");
+    },
+    [runMutation],
+  );
 
   const saveIdeaVersion = useCallback(
     (id: string) => {
-      const idea = dataset.ideas.find((i) => i.id === id);
-      if (!idea) return;
-      const entry: IdeaHistoryEntry = {
-        id: nextId("h"),
-        idea_id: id,
-        title: idea.title,
-        body: idea.body,
-        created_at: new Date().toISOString(),
-      };
-      setDataset((prev) => ({ ...prev, ideaHistory: [entry, ...prev.ideaHistory] }));
-      pushToast("Versi ide tersimpan.");
+      dbSaveIdeaVersion(id)
+        .then(() => {
+          pushToast("Versi ide tersimpan.");
+          refresh();
+        })
+        .catch((err) => {
+          console.error(err);
+          pushToast("Gagal menyimpan versi ide.");
+        });
     },
-    [dataset.ideas, pushToast],
+    [refresh, pushToast],
   );
 
   const convertIdeaToTask = useCallback(
-    (id: string): Task | null => {
-      const idea = dataset.ideas.find((i) => i.id === id);
-      if (!idea) return null;
-      const notes = [idea.body, idea.link].filter(Boolean).join("\n") || null;
-      const task = addTask({
-        title: idea.title,
-        notes,
-        image_path: idea.image_path,
-        project_id: idea.project_id,
-        source: idea.project_id ? "manual" : "inbox",
-      });
-      deleteIdea(id);
-      pushToast("Ide dijadikan task.");
-      return task;
+    (id: string) => {
+      dbConvertIdeaToTask(id)
+        .then(() => {
+          pushToast("Ide dijadikan task.");
+          refresh();
+        })
+        .catch((err) => {
+          console.error(err);
+          pushToast("Gagal mengonversi ide ke task.");
+        });
     },
-    [dataset.ideas, addTask, deleteIdea, pushToast],
+    [refresh, pushToast],
   );
 
   // ---------- Metrics ----------
-  const addMetric = useCallback((input: Partial<Metric> & { name: string }): Metric => {
-    const metric: Metric = {
-      id: nextId("m"),
-      project_id: input.project_id ?? null,
-      name: input.name,
-      unit: input.unit ?? null,
-      type: input.type ?? "boolean",
-      schedule_type: input.schedule_type ?? "daily",
-      weekdays: input.weekdays ?? null,
-      is_active: input.is_active ?? true,
-    };
-    setDataset((prev) => ({ ...prev, metrics: [metric, ...prev.metrics] }));
-    return metric;
-  }, []);
+  const addMetric = useCallback(
+    (input: Partial<Metric> & { name: string }) => {
+      runMutation(dbAddMetric(input), "Gagal menyimpan metrik.");
+    },
+    [runMutation],
+  );
 
   const upsertCheckin = useCallback(
     (metricId: string, date: string, value: number | boolean, note: string | null = null) => {
-      setDataset((prev) => {
-        const existing = prev.metricCheckins.find(
-          (c) => c.metric_id === metricId && c.checkin_date === date,
-        );
-        const isBool = typeof value === "boolean";
-        if (existing) {
-          return {
-            ...prev,
-            metricCheckins: prev.metricCheckins.map((c) =>
-              c.id === existing.id
-                ? {
-                    ...c,
-                    value_bool: isBool ? (value as boolean) : null,
-                    value_number: isBool ? null : (value as number),
-                    note,
-                  }
-                : c,
-            ),
-          };
-        }
-        const entry: MetricCheckin = {
-          id: nextId("c"),
-          metric_id: metricId,
-          checkin_date: date,
-          value_bool: isBool ? (value as boolean) : null,
-          value_number: isBool ? null : (value as number),
-          note,
-        };
-        return { ...prev, metricCheckins: [entry, ...prev.metricCheckins] };
-      });
+      runMutation(dbUpsertCheckin(metricId, date, value, note), "Gagal menyimpan check-in.");
     },
-    [],
+    [runMutation],
   );
 
   // ---------- Recurring rules ----------
   const addRule = useCallback(
-    (input: Partial<RecurringRule> & { title_template: string; frequency: RecurringRule["frequency"] }): RecurringRule => {
-      const rule: RecurringRule = {
-        id: nextId("r"),
-        project_id: input.project_id ?? null,
-        title_template: input.title_template,
-        priority: input.priority ?? "medium",
-        frequency: input.frequency,
-        weekdays: input.weekdays ?? null,
-        day_of_month: input.day_of_month ?? null,
-        time_of_day: input.time_of_day ?? null,
-        is_active: input.is_active ?? true,
-      };
-      setDataset((prev) => ({ ...prev, recurringRules: [rule, ...prev.recurringRules] }));
-      return rule;
+    (input: Partial<RecurringRule> & { title_template: string; frequency: RecurringRule["frequency"] }) => {
+      runMutation(dbAddRule(input), "Gagal menyimpan aturan recurring.");
     },
-    [],
+    [runMutation],
   );
 
-  const toggleRule = useCallback((id: string) => {
-    setDataset((prev) => ({
-      ...prev,
-      recurringRules: prev.recurringRules.map((r) =>
-        r.id === id ? { ...r, is_active: !r.is_active } : r,
-      ),
-    }));
-  }, []);
+  const toggleRule = useCallback(
+    (id: string) => {
+      const rule = dataset.recurringRules.find((r) => r.id === id);
+      if (!rule) return;
+      runMutation(dbToggleRule(id, !rule.is_active), "Gagal mengubah status aturan.");
+    },
+    [dataset.recurringRules, runMutation],
+  );
 
   // ---------- Reminders ----------
-  const dismissReminder = useCallback((id: string) => {
-    setDataset((prev) => ({
-      ...prev,
-      reminders: prev.reminders.map((r): Reminder => (r.id === id ? { ...r, status: "dismissed" } : r)),
-    }));
-  }, []);
+  const dismissReminder = useCallback(
+    (id: string) => {
+      runMutation(dbDismissReminder(id), "Gagal menutup reminder.");
+    },
+    [runMutation],
+  );
 
   // ---------- Weekly review ----------
   const saveWeeklyReview = useCallback(
@@ -432,32 +423,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       periodEnd: string,
       patch: Partial<Pick<WeeklyReview, "done_summary" | "missed_summary" | "carry_over" | "next_focus">>,
     ) => {
-      setDataset((prev) => {
-        const existing = prev.weeklyReviews.find(
-          (w) => w.project_id === projectId && w.period_start === periodStart && w.period_end === periodEnd,
-        );
-        if (existing) {
-          return {
-            ...prev,
-            weeklyReviews: prev.weeklyReviews.map((w) => (w.id === existing.id ? { ...w, ...patch } : w)),
-          };
-        }
-        const review: WeeklyReview = {
-          id: nextId("w"),
-          project_id: projectId,
-          period_start: periodStart,
-          period_end: periodEnd,
-          done_summary: null,
-          missed_summary: null,
-          carry_over: null,
-          next_focus: null,
-          ...patch,
-        };
-        return { ...prev, weeklyReviews: [review, ...prev.weeklyReviews] };
-      });
-      pushToast("Review tersimpan.");
+      dbSaveWeeklyReview(projectId, periodStart, periodEnd, patch)
+        .then(() => {
+          pushToast("Review tersimpan.");
+          refresh();
+        })
+        .catch((err) => {
+          console.error(err);
+          pushToast("Gagal menyimpan review.");
+        });
     },
-    [pushToast],
+    [refresh, pushToast],
   );
 
   const openTaskDetail = useCallback((id: string) => setOpenTaskId(id), []);
@@ -470,9 +446,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const closeTaskForm = useCallback(() => setTaskForm({ open: false, taskId: null, defaultProjectId: null }), []);
 
   const value: AppState = {
-    scenario,
-    setScenario,
     dataset,
+    loading,
+    signOut,
     activeProjectId,
     setActiveProjectId,
     focusMode,
@@ -480,12 +456,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     toggleFocusMode,
     toasts,
     pushToast,
-    openTaskId,
-    openTaskDetail,
-    closeTaskDetail,
-    taskForm,
-    openTaskForm,
-    closeTaskForm,
     addTask,
     updateTask,
     toggleFocusToday,
@@ -504,6 +474,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     toggleRule,
     dismissReminder,
     saveWeeklyReview,
+    openTaskId,
+    openTaskDetail,
+    closeTaskDetail,
+    taskForm,
+    openTaskForm,
+    closeTaskForm,
   };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

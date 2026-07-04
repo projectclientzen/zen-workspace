@@ -10,28 +10,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/layout/sidebar";
 import { useAppState } from "@/lib/app-state";
 
 export function Topbar() {
-  const {
-    dataset,
-    addTask,
-    pushToast,
-    dismissReminder,
-    focusMode,
-    toggleFocusMode,
-    scenario,
-    setScenario,
-  } = useAppState();
+  const { dataset, addTask, pushToast, dismissReminder, focusMode, toggleFocusMode } = useAppState();
   const [capture, setCapture] = useState("");
   const [navOpen, setNavOpen] = useState(false);
   const router = useRouter();
@@ -44,7 +28,8 @@ export function Topbar() {
     setCapture("");
   };
 
-  const pending = dataset.reminders.filter((r) => r.status === "pending");
+  // get_pending_reminders() sudah memfilter status=pending & remind_at<=now di server.
+  const pending = dataset.reminders;
 
   return (
     <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2.5 sm:gap-2.5 sm:px-6 sm:py-3">
@@ -71,17 +56,6 @@ export function Topbar() {
         className="min-w-0 flex-1 bg-background sm:max-w-[420px]"
       />
       <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-        <Select value={scenario} onValueChange={(v) => setScenario(v as typeof scenario)}>
-          <SelectTrigger className="hidden h-8 w-[140px] text-xs sm:flex" title="Skenario data (dev only)">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="normal">Skenario: Normal</SelectItem>
-            <SelectItem value="overdue">Skenario: Overdue</SelectItem>
-            <SelectItem value="empty">Skenario: Kosong</SelectItem>
-          </SelectContent>
-        </Select>
-
         <DropdownMenu>
           <DropdownMenuTrigger
             className="relative flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-sm hover:bg-muted/40"

@@ -22,7 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AttachmentImage } from "@/components/common/attachment-image";
 import { useAppState } from "@/lib/app-state";
+import { uploadAttachment } from "@/lib/supabase/storage";
 
 const NONE = "__none__";
 
@@ -43,6 +45,7 @@ export function TaskFormDialog() {
   const { dataset, taskForm, closeTaskForm, addTask, updateTask, pushToast } = useAppState();
   const editing = taskForm.taskId ? dataset.tasks.find((t) => t.id === taskForm.taskId) : null;
   const [imagePath, setImagePath] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const {
     register,
@@ -96,12 +99,19 @@ export function TaskFormDialog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskForm.open, taskForm.taskId]);
 
-  const onPickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPickImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setImagePath(reader.result as string);
-    reader.readAsDataURL(file);
+    setUploading(true);
+    try {
+      const path = await uploadAttachment(file, "tasks");
+      setImagePath(path);
+    } catch (err) {
+      console.error(err);
+      pushToast("Gagal upload gambar.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const onSubmit = (values: FormValues) => {
@@ -167,8 +177,10 @@ export function TaskFormDialog() {
             <Label>Gambar (opsional)</Label>
             {imagePath && (
               <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imagePath} alt="" className="h-[120px] w-full rounded-md border border-border object-cover" />
+                <AttachmentImage
+                  path={imagePath}
+                  className="h-[120px] w-full rounded-md border border-border object-cover"
+                />
                 <button
                   type="button"
                   className="absolute top-1.5 right-1.5 rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white"
@@ -179,8 +191,14 @@ export function TaskFormDialog() {
               </div>
             )}
             <label className="cursor-pointer rounded-md border border-dashed border-faint px-3 py-2 text-center text-[11.5px] font-semibold text-muted-foreground">
-              + Gambar
-              <input type="file" accept="image/*" className="hidden" onChange={onPickImage} />
+              {uploading ? "Mengunggah…" : "+ Gambar"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={onPickImage}
+              />
             </label>
           </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppSidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -8,6 +9,13 @@ import { TaskDetailDrawer } from "@/components/tasks/task-detail-drawer";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isAuthRoute = pathname?.startsWith("/login");
+
+  if (isAuthRoute) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <AppSidebar />

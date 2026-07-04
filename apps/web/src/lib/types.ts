@@ -138,8 +138,8 @@ export interface UrgentGroup {
   tasks: Task[];
 }
 
-export type MockScenario = "normal" | "overdue" | "empty";
-
+// Nama "MockDataset" dipertahankan (bukan cuma untuk data mock lagi) supaya tidak perlu
+// ubah import di banyak file — sekarang ini bentuk dataset gabungan dari Supabase asli.
 export interface MockDataset {
   projects: Project[];
   tasks: Task[];

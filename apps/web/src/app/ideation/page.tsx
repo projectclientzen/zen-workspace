@@ -12,7 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AttachmentImage } from "@/components/common/attachment-image";
 import { useAppState } from "@/lib/app-state";
+import { uploadAttachment } from "@/lib/supabase/storage";
 
 const NONE = "__none__";
 
@@ -39,12 +41,21 @@ export default function IdeationPage() {
   const [filterProject, setFilterProject] = useState<"all" | "none" | string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const pickImage = (e: React.ChangeEvent<HTMLInputElement>, onDone: (v: string) => void) => {
+  const [uploading, setUploading] = useState(false);
+
+  const pickImage = async (e: React.ChangeEvent<HTMLInputElement>, onDone: (v: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => onDone(reader.result as string);
-    reader.readAsDataURL(file);
+    setUploading(true);
+    try {
+      const path = await uploadAttachment(file, "ideas");
+      onDone(path);
+    } catch (err) {
+      console.error(err);
+      pushToast("Gagal upload gambar.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const submit = () => {
@@ -107,8 +118,7 @@ export default function IdeationPage() {
           <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Tempel link URL (opsional)" />
           {imagePath && (
             <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imagePath} alt="" className="h-[110px] w-full rounded-md border border-border object-cover" />
+              <AttachmentImage path={imagePath} className="h-[110px] w-full rounded-md border border-border object-cover" />
               <button
                 type="button"
                 className="absolute top-1.5 right-1.5 rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white"
@@ -119,8 +129,14 @@ export default function IdeationPage() {
             </div>
           )}
           <label className="cursor-pointer rounded-md border border-dashed border-faint px-3 py-2 text-center text-[11.5px] font-semibold text-muted-foreground">
-            + Gambar
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => pickImage(e, setImagePath)} />
+            {uploading ? "Mengunggah…" : "+ Gambar"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => pickImage(e, setImagePath)}
+            />
           </label>
           <Button onClick={submit}>+ Simpan ide</Button>
         </Card>
@@ -167,14 +183,10 @@ export default function IdeationPage() {
                       ✕
                     </button>
                   </div>
-                  {i.image_path && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={i.image_path}
-                      alt=""
-                      className="h-[120px] w-full rounded-md border border-border object-cover"
-                    />
-                  )}
+                  <AttachmentImage
+                    path={i.image_path}
+                    className="h-[120px] w-full rounded-md border border-border object-cover"
+                  />
                   <div className="font-serif text-[16px] leading-snug font-medium text-pretty">{i.title}</div>
                   {i.body && <div className="text-[12.5px] leading-relaxed text-muted-foreground">{i.body}</div>}
                   <div className="mt-auto flex items-center gap-2 pt-1.5">
@@ -229,10 +241,8 @@ export default function IdeationPage() {
             />
             {openIdea.image_path && (
               <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={openIdea.image_path}
-                  alt=""
+                <AttachmentImage
+                  path={openIdea.image_path}
                   className="h-[150px] w-full rounded-md border border-border object-cover"
                 />
                 <button
@@ -245,11 +255,12 @@ export default function IdeationPage() {
               </div>
             )}
             <label className="cursor-pointer rounded-md border border-dashed border-faint px-3 py-2 text-center text-[11.5px] font-semibold text-muted-foreground">
-              + Gambar
+              {uploading ? "Mengunggah…" : "+ Gambar"}
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
+                disabled={uploading}
                 onChange={(e) => pickImage(e, (v) => updateIdea(openIdea.id, { image_path: v }))}
               />
             </label>

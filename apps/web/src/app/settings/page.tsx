@@ -19,7 +19,7 @@ const NONE = "__none__";
 const WEEKDAY_LABEL = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 export default function SettingsPage() {
-  const { dataset, addRule, toggleRule, pushToast } = useAppState();
+  const { dataset, addRule, toggleRule, pushToast, signOut } = useAppState();
 
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState(NONE);
@@ -134,6 +134,13 @@ export default function SettingsPage() {
             <div className="py-4 text-center text-[12px] text-muted-foreground">Belum ada aturan recurring.</div>
           )}
         </div>
+      </Card>
+
+      <Card className="mt-3.5 gap-2 p-4">
+        <div className="text-[13px] font-bold">Akun</div>
+        <Button variant="outline" className="w-fit text-destructive" onClick={signOut}>
+          Keluar
+        </Button>
       </Card>
     </div>
   );
