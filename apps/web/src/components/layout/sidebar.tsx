@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { ProjectFormDialog } from "@/components/layout/project-form-dialog";
 import { useAppState } from "@/lib/app-state";
 import { getUrgentGroups } from "@/lib/selectors";
 import { cn } from "@/lib/utils";
@@ -46,6 +48,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { dataset, activeProjectId, setActiveProjectId, focusMode } = useAppState();
   const urgentGroups = getUrgentGroups(dataset, "all");
   const urgentCount = urgentGroups.reduce((sum, g) => sum + g.tasks.length, 0);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
 
   return (
     <div className="flex h-full flex-col gap-0.5 overflow-y-auto bg-sidebar p-3 pb-3.5">
@@ -71,8 +74,17 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         </>
       )}
 
-      <div className="px-2 pb-1.5 pt-3.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">
-        Project
+      <div className="flex items-center px-2 pb-1.5 pt-3.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">Project</span>
+        {!focusMode && (
+          <button
+            onClick={() => setProjectDialogOpen(true)}
+            className="ml-auto text-[13px] font-bold text-sidebar-muted hover:text-sidebar-primary"
+            title="Project baru"
+          >
+            +
+          </button>
+        )}
       </div>
       {dataset.projects
         .filter((p) => !focusMode || p.id === activeProjectId)
@@ -98,6 +110,14 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             <span className="truncate">{p.name}</span>
           </Link>
         ))}
+      {dataset.projects.length === 0 && !focusMode && (
+        <button
+          onClick={() => setProjectDialogOpen(true)}
+          className="rounded-lg px-2.5 py-1.5 text-left text-[12px] text-sidebar-muted hover:text-sidebar-primary"
+        >
+          + Tambah project pertama
+        </button>
+      )}
 
       {!focusMode && (
         <>
@@ -117,6 +137,8 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="mt-auto" />
       <NavItem href="/settings" label="Settings" active={pathname === "/settings"} onNavigate={onNavigate} />
+
+      <ProjectFormDialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen} />
     </div>
   );
 }

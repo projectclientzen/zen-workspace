@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { ProjectFormDialog } from "@/components/layout/project-form-dialog";
 import { useAppState } from "@/lib/app-state";
 import type { RecurringFrequency } from "@/lib/types";
 
@@ -19,7 +20,8 @@ const NONE = "__none__";
 const WEEKDAY_LABEL = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 export default function SettingsPage() {
-  const { dataset, addRule, toggleRule, pushToast, signOut } = useAppState();
+  const { dataset, addRule, toggleRule, updateProject, pushToast, signOut } = useAppState();
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
 
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState(NONE);
@@ -137,11 +139,43 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="mt-3.5 gap-2 p-4">
+        <div className="flex items-center">
+          <span className="text-[13px] font-bold">Project</span>
+          <Button size="sm" className="ml-auto" onClick={() => setProjectDialogOpen(true)}>
+            + Project baru
+          </Button>
+        </div>
+        <div className="mt-1 flex flex-col gap-1">
+          {dataset.projects.map((p) => (
+            <div key={p.id} className="flex items-center gap-2.5 border-t border-border py-2.5 first:border-t-0">
+              <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: p.color ?? "#8A857A" }} />
+              <Input
+                value={p.name}
+                onChange={(e) => updateProject(p.id, { name: e.target.value })}
+                className="h-8 flex-1 border-transparent bg-transparent text-[12.5px] font-semibold shadow-none focus-visible:border-border focus-visible:bg-background"
+              />
+              <span className="flex-none text-[10.5px] uppercase tracking-wide text-muted-foreground">{p.type}</span>
+              <Switch
+                checked={p.is_active}
+                onCheckedChange={(v) => updateProject(p.id, { is_active: v })}
+                title="Aktif"
+              />
+            </div>
+          ))}
+          {dataset.projects.length === 0 && (
+            <div className="py-4 text-center text-[12px] text-muted-foreground">Belum ada project.</div>
+          )}
+        </div>
+      </Card>
+
+      <Card className="mt-3.5 gap-2 p-4">
         <div className="text-[13px] font-bold">Akun</div>
         <Button variant="outline" className="w-fit text-destructive" onClick={signOut}>
           Keluar
         </Button>
       </Card>
+
+      <ProjectFormDialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen} />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   dbAddIdea,
   dbAddMetric,
+  dbAddProject,
   dbAddRule,
   dbAddTask,
   dbAddTimeBlock,
@@ -26,6 +27,7 @@ import {
   dbSeedDefaultProjects,
   dbToggleRule,
   dbUpdateIdea,
+  dbUpdateProject,
   dbUpdateTask,
   dbUpsertCheckin,
   fetchDataset,
@@ -36,6 +38,7 @@ import type {
   MockDataset,
   PomodoroKind,
   Priority,
+  Project,
   RecurringRule,
   Task,
   WeeklyReview,
@@ -86,6 +89,10 @@ interface AppState {
 
   toasts: ToastItem[];
   pushToast: (msg: string) => void;
+
+  // Projects
+  addProject: (input: { name: string; type: Project["type"]; color: string | null }) => void;
+  updateProject: (id: string, patch: Partial<Pick<Project, "name" | "type" | "color" | "is_active">>) => void;
 
   // Tasks
   addTask: (input: Partial<Task> & { title: string }) => void;
@@ -292,6 +299,21 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         });
     },
     [refresh, pushToast],
+  );
+
+  // ---------- Projects ----------
+  const addProject = useCallback(
+    (input: { name: string; type: Project["type"]; color: string | null }) => {
+      runMutation(dbAddProject(input), "Gagal membuat project.");
+    },
+    [runMutation],
+  );
+
+  const updateProject = useCallback(
+    (id: string, patch: Partial<Pick<Project, "name" | "type" | "color" | "is_active">>) => {
+      runMutation(dbUpdateProject(id, patch), "Gagal menyimpan project.");
+    },
+    [runMutation],
   );
 
   // ---------- Tasks ----------
@@ -520,6 +542,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     toggleFocusMode,
     toasts,
     pushToast,
+    addProject,
+    updateProject,
     addTask,
     updateTask,
     toggleFocusToday,

@@ -426,6 +426,45 @@ export async function dbSeedDefaultProjects() {
   if (error) throw error;
 }
 
+// ---------- Projects ----------
+
+export async function dbAddProject(input: {
+  name: string;
+  type: Project["type"];
+  color: string | null;
+}) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Belum login");
+
+  const { count } = await supabase
+    .from("projects")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({
+      user_id: user.id,
+      name: input.name,
+      type: input.type,
+      color: input.color,
+      sort_order: count ?? 0,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function dbUpdateProject(id: string, patch: Partial<Pick<Project, "name" | "type" | "color" | "is_active">>) {
+  const supabase = createClient();
+  const { error } = await supabase.from("projects").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
 // ---------- Time blocking ----------
 
 export async function dbAddTimeBlock(taskId: string, startAt: string, endAt: string) {
