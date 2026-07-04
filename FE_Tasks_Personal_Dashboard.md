@@ -223,6 +223,38 @@ Semua halaman render dengan mock, Focus Mode dan Top 3 jalan, tiga state ada, ca
 - **PAGE-D3 belum ada** sebagai bottom sheet mobile terpadu dengan toggle Task⟷Idea. Yang sudah ada sebagai penggantinya: capture cepat teks di top bar (task ke Inbox), form Task lengkap via dialog (`TaskFormDialog`), dan form Idea lengkap di halaman Ideation — jadi fungsinya tercakup, hanya belum digabung jadi satu sheet mobile sesuai desain asli.
 - STATE-3 (mobile pass) sudah melalui responsive pass menyeluruh (sidebar jadi drawer di <768px, grid menyusut ke 1 kolom, topbar menyesuaikan) tapi belum diuji di perangkat fisik — hanya via resize browser.
 
-## Catatan tidak wajib v1
+## Catatan tidak wajib v1 (superseded — lihat Sprint L/M/N/O di bawah)
 
-Push notification browser sungguhan (service worker + subscription) — di mock hanya placeholder `Notification` API lokal, tidak persist antar reload. Ditunda ke v1.1, tidak menghalangi gerbang selesai FE.
+Push notification browser sungguhan tadinya ditunda ke v1.1 — **sekarang dikerjakan** (user minta), lihat Sprint M.
+
+---
+
+## Sprint L — PWA (diminta user, di luar spek awal)
+
+- [x] **PWA-1 Manifest + ikon** `manifest.json` lengkap (16px–512px + maskable + apple-touch-icon), themeColor, appleWebApp meta di `layout.tsx`. Cek: bisa "Add to Home Screen" di HP.
+- [x] **PWA-2 Service worker** `public/sw.js` — pass-through fetch (syarat installable) + handler push/notificationclick (dipakai Sprint M). Terdaftar sekali via komponen `RegisterServiceWorker`. Cek: SW ter-register di DevTools Application tab.
+
+## Sprint M — Time Blocking + Pomodoro (diminta user, di luar spek awal)
+
+- [x] **TB-FE-1 TimeBlockScheduler** komponen di Task Detail Drawer — jadwalkan blok waktu (tanggal, jam, durasi) untuk task yang sedang dibuka, list blok tersimpan + hapus.
+- [x] **TB-FE-2 Tampilan Calendar** blok waktu muncul sebagai dot kuning per tanggal + daftar di panel detail hari, terpisah visual dari task ber-`due_at`.
+- [x] **POM-FE-1 PomodoroTimer** komponen di Task Detail Drawer — countdown fokus (25/50 menit) dan istirahat (5/15 menit), auto-log sesi selesai natural ke `pomodoro_sessions`, auto-switch mode fokus↔istirahat.
+- [ ] **POM-FE-2 Ringkasan menit fokus per task** (pakai RPC `task_focus_minutes`) belum ditampilkan di mana pun (list/drawer) — baru datanya saja yang tercatat.
+
+## Sprint N — Push Notification asli (v1.1 → dikerjakan sekarang)
+
+- [x] Backend selesai (tabel, RPC, Edge Function) — lihat BE_Tasks Sprint M.
+- [ ] **PUSH-FE-1 Tombol "Aktifkan push" di Settings** — request `Notification.requestPermission()`, `serviceWorkerRegistration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: <NEXT_PUBLIC_VAPID_PUBLIC_KEY> })`, simpan subscription (endpoint + keys) ke tabel `push_subscriptions`. **Belum dikerjakan — ini pekerjaan FE berikutnya.**
+- [ ] **PUSH-FE-2 Status "aktif/nonaktif"** tampilkan status subscription saat ini + tombol nonaktifkan (unsubscribe + hapus baris `push_subscriptions`).
+
+## Sprint O — Google Calendar sync (diminta user, belum mulai)
+
+Menunggu OAuth Client Google dari user (lihat BE_Tasks Sprint N GCAL-1) sebelum FE bisa mulai — perlu tombol "Hubungkan Google Calendar" di Settings yang redirect ke route OAuth start, dan indikator status terhubung/tidak.
+
+- [ ] **GCAL-FE-1 Tombol hubungkan** di Settings, redirect ke `/api/auth/google/start`.
+- [ ] **GCAL-FE-2 Status koneksi** tampilkan email Google yang terhubung + tombol putuskan.
+
+## Bug ditemukan user & sudah diperbaiki
+
+- [x] **Tidak ada UI buat project baru** — sebelumnya project cuma bisa masuk lewat auto-seed 8 default saat signup pertama; begitu itu berhasil, tidak ada jalan lain menambah project. Diperbaiki: tombol "+" di sidebar (dan CTA "+ Tambah project pertama" saat kosong) + dialog `ProjectFormDialog`, juga bisa dari Settings (yang juga bisa rename/aktifkan-nonaktifkan project).
+- [x] **Halaman kosong tanpa pesan saat load data gagal** — `fetchDataset()` di `app-state.tsx` tidak dibungkus try/catch, jadi kalau gagal, UI diam-diam kosong (project hilang dari sidebar, semua halaman nampak 0 data) tanpa error apa pun. Diperbaiki: `loadError` state + banner error dengan tombol "Coba lagi" di `AppShell`, dan gerbang `supabase.auth.getUser()` yang rapuh di client dihapus (middleware sudah cukup).

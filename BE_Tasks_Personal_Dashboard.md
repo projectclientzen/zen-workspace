@@ -21,10 +21,39 @@ FE (Zen Dashboard desktop + Zen Mobile) sudah direvisi dan menambah fitur yang b
 
 Semua sprint DATA/RPC/JOB sudah diterapkan ke project Supabase `zen-dashboard` (ref `qexwjdkmsheqaumopwbb`, region ap-southeast-1) via migrasi — lihat `supabase/migrations/` di repo `zen-workspace` untuk SQL lengkap dan `supabase/README.md` untuk status per sprint. Dicek lewat Supabase advisor (security + performance), bersih.
 
+Sudah live di Netlify (`zen-dashboard-app.netlify.app`, auto-deploy dari `main`) — **FND-3 selesai**, coret dari "belum dikerjakan".
+
 Belum dikerjakan:
-- **FND-3 Netlify site** — belum di-deploy.
 - **Testing (TEST-1..10)** — belum dijalankan end-to-end dengan sesi auth user sungguhan (baru dicek via advisor + review SQL manual saat apply migrasi).
-- **CAL-2 GCal push** — sesuai keputusan, ditunda ke v1.1.
+- **CAL-2 GCal push** — sesuai keputusan, ditunda ke v1.1. **Update:** user sudah minta ini dikerjakan sekarang (bukan ditunda lagi) — perlu OAuth Client Google (Client ID + Secret) yang harus dibuat user sendiri di Google Cloud Console, belum bisa mulai sampai itu ada.
+- **Sprint M (Push notification asli)** — tabel, RPC, Edge Function sudah jalan, tapi **belum tersambung end-to-end**: 3 secret (VAPID public/private key, cron secret) belum diisi user ke Supabase Dashboard, dan pg_cron belum dijadwalkan untuk memanggil Edge Function `send-push`. Lihat detail di Sprint M di bawah.
+
+## Sprint L — Time Blocking + Pomodoro (di luar spek awal, ditambah atas permintaan user)
+
+- [x] **TB-1 Tabel time_blocks** slot waktu kerja per task, terpisah dari `due_at` (deadline vs kapan sungguhan dikerjakan). RLS standar.
+- [x] **TB-2 RPC time_blocks_in_range(p_start, p_end)** untuk tampilan kalender.
+- [x] **POM-1 Tabel pomodoro_sessions** sesi fokus/istirahat per task, kolom completed untuk bedakan sesi selesai natural vs dihentikan.
+- [x] **POM-2 RPC task_focus_minutes(p_task_id)** total menit fokus per task (badge ringkasan).
+
+## Sprint M — Push Notification asli (v1.1 → dikerjakan sekarang atas permintaan user)
+
+- [x] **PUSH-1 Tabel push_subscriptions** endpoint + keys (p256dh/auth) per user/device, RLS standar.
+- [x] **PUSH-2 Kolom reminders.pushed_at** penanda reminder yang sudah dikirim via push (beda dari status pending/dismissed yang atur tampilan in-app), supaya job pengirim tidak dobel kirim.
+- [x] **PUSH-3 RPC get_reminders_to_push() / mark_reminder_pushed()** service-role only, dipakai Edge Function.
+- [x] **PUSH-4 Edge Function send-push** (`supabase/functions/send-push`) — pakai `npm:web-push`, kirim ke semua subscription milik user pemilik reminder, hapus subscription yang sudah invalid (404/410). Sudah ter-deploy (`verify_jwt=false`, diproteksi header `x-cron-secret`).
+- [ ] **PUSH-5 Isi secret Edge Function** — **BUTUH AKSI USER**: buka Supabase Dashboard → Project → Edge Functions → `send-push` → Secrets, isi `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET` (nilai sudah digenerate, ada di riwayat chat — tidak diulang di sini demi keamanan). Sengaja tidak diisi otomatis oleh asisten supaya secret tidak lewat log tool-call.
+- [ ] **PUSH-6 Jadwalkan pg_cron → send-push** Setelah PUSH-5 selesai, jalankan `select cron.schedule('send_push_every_5min', '*/5 * * * *', $$select net.http_post(url:='<function-url>', headers:=jsonb_build_object('x-cron-secret','<CRON_SECRET>'))$$);` — juga butuh user (supaya secret tidak lewat asisten).
+- [ ] **PUSH-7 FE subscribe flow** Tombol "Aktifkan push" di Settings: request Notification permission, `pushManager.subscribe()` pakai `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, simpan subscription ke `push_subscriptions`. **Belum dikerjakan.**
+
+## Sprint N — Google Calendar sync (diminta user, belum mulai)
+
+- [ ] **GCAL-1 OAuth Client Google** — **BUTUH AKSI USER**: buat OAuth Client (Web application) di Google Cloud Console, aktifkan Google Calendar API, catat Client ID + Client Secret, tambahkan redirect URI `https://zen-dashboard-app.netlify.app/api/auth/google/callback` (atau path final yang dipakai).
+- [ ] **GCAL-2 Tabel google_calendar_tokens** simpan access_token/refresh_token per user (server-only, tidak boleh ke FE).
+- [ ] **GCAL-3 Route OAuth** (`/api/auth/google/start`, `/api/auth/google/callback`) — mulai & selesaikan consent flow, tukar code jadi token.
+- [ ] **GCAL-4 Sinkronisasi task→event** satu arah dulu sesuai keputusan awal: task ber-`due_at` dibuat/diubah → buat/update event Google Calendar yang bersangkutan (simpan `google_event_id` di tasks atau tabel mapping terpisah).
+- [ ] **GCAL-5 Refresh token handling** perpanjang access token otomatis saat kedaluwarsa.
+
+Belum bisa mulai — menunggu **GCAL-1** dari user.
 
 ---
 
@@ -69,6 +98,8 @@ create index idx_projects_user on public.projects(user_id);
 Cek: insert jalan.
 
 - [x] **DATA-2 Seed 8 project** ngajigaes.id, Labbaika, Alaikahabibi, Shaleeha Journey, MediaPondok Jatim, PauseProject.id, Ngonten Kopi, Belajar AI. Cek: 8 baris.
+
+- [x] **DATA-2b Buat/edit project manual (bug ditemukan user, diperbaiki)** Spek awal cuma asumsikan 8 project tetap dari seed — ternyata tidak ada jalur bikin project baru sama sekali di FE. Ditambahkan: insert langsung via `projects` table (RLS sudah cukup, tidak perlu RPC baru) dari dialog FE baru. Cek: project baru muncul di sidebar tanpa refresh.
 
 - [x] **DATA-3 Tabel tasks** `project_id` null berarti Inbox.
 ```sql
