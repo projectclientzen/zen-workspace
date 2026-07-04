@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -112,7 +113,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [scenario, setScenarioState] = useState<MockScenario>("normal");
   const [activeProjectId, setActiveProjectIdState] = useState<string | "all">("all");
   const [focusMode, setFocusModeState] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
   const [dataset, setDataset] = useState<MockDataset>(() => buildMockDataset("normal"));
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
@@ -122,6 +122,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     defaultProjectId: null,
   });
 
+  /* eslint-disable react-hooks/set-state-in-effect -- hidrasi sekali dari localStorage
+     setelah mount, bukan sinkronisasi berulang. Sengaja tidak dipindah ke lazy
+     initializer supaya SSR/first paint konsisten (localStorage tidak tersedia
+     di server) dan tidak memicu hydration mismatch. */
   useEffect(() => {
     const s = localStorage.getItem(SCENARIO_KEY) as MockScenario | null;
     const scope = localStorage.getItem(SCOPE_KEY);
@@ -132,9 +136,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
     if (scope) setActiveProjectIdState(scope);
     if (focus) setFocusModeState(focus === "1");
-    setHydrated(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const pushToast = useCallback((msg: string) => {
     const id = nextId("toast");
@@ -143,6 +146,25 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3200);
   }, []);
+
+  // PAGE-F2: reminder yang remind_at-nya lewat tampil sebagai toast sekali saja
+  // (tanpa mengubah status — tetap "pending" sampai user dismiss dari notification center).
+  const toastedReminderIds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const check = () => {
+      const now = Date.now();
+      for (const r of dataset.reminders) {
+        if (r.status !== "pending") continue;
+        if (new Date(r.remind_at).getTime() > now) continue;
+        if (toastedReminderIds.current.has(r.id)) continue;
+        toastedReminderIds.current.add(r.id);
+        pushToast(r.title);
+      }
+    };
+    check();
+    const interval = setInterval(check, 30_000);
+    return () => clearInterval(interval);
+  }, [dataset.reminders, pushToast]);
 
   const setScenario = (s: MockScenario) => {
     setScenarioState(s);
@@ -156,16 +178,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const setFocusMode = (v: boolean) => {
     setFocusModeState(v);
     localStorage.setItem(FOCUS_KEY, v ? "1" : "0");
-  };
-  const toggleFocusMode = () => setFocusMode(!focusMode);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    if (focusMode && activeProjectId === "all" && dataset.projects[0]) {
+    // Focus Mode mengunci ke satu project — kalau scope masih "all", kunci ke project pertama.
+    if (v && activeProjectId === "all" && dataset.projects[0]) {
       setActiveProjectId(dataset.projects[0].id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusMode, hydrated]);
+  };
+  const toggleFocusMode = () => setFocusMode(!focusMode);
 
   // ---------- Tasks ----------
   const addTask = useCallback(

@@ -94,7 +94,6 @@ export function computeStreak(dataset: MockDataset, metricId: string): number {
   let streak = 0;
   const metric = dataset.metrics.find((m) => m.id === metricId);
   if (!metric) return 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const dateStr = d.toISOString().slice(0, 10);
     const checkin = dataset.metricCheckins.find(
