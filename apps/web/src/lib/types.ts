@@ -138,6 +138,27 @@ export interface UrgentGroup {
   tasks: Task[];
 }
 
+export interface TimeBlock {
+  id: string;
+  task_id: string;
+  task_title: string | null;
+  project_id: string | null;
+  start_at: string;
+  end_at: string;
+}
+
+export type PomodoroKind = "focus" | "break";
+
+export interface PomodoroSession {
+  id: string;
+  task_id: string | null;
+  kind: PomodoroKind;
+  planned_minutes: number;
+  started_at: string;
+  ended_at: string | null;
+  completed: boolean;
+}
+
 // Nama "MockDataset" dipertahankan (bukan cuma untuk data mock lagi) supaya tidak perlu
 // ubah import di banyak file — sekarang ini bentuk dataset gabungan dari Supabase asli.
 export interface MockDataset {
@@ -150,4 +171,6 @@ export interface MockDataset {
   weeklyReviews: WeeklyReview[];
   ideas: Idea[];
   ideaHistory: IdeaHistoryEntry[];
+  timeBlocks: TimeBlock[];
+  pomodoroSessions: PomodoroSession[];
 }

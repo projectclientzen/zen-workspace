@@ -5,9 +5,11 @@ import type {
   DbMetric,
   DbMetricCheckin,
   DbPendingReminder,
+  DbPomodoroSession,
   DbProject,
   DbRecurringRule,
   DbTaskView,
+  DbTimeBlock,
   DbWeeklyReview,
 } from "@/lib/supabase/database.types";
 import type {
@@ -16,10 +18,13 @@ import type {
   Metric,
   MetricCheckin,
   MockDataset,
+  PomodoroKind,
+  PomodoroSession,
   Project,
   RecurringRule,
   Reminder,
   Task,
+  TimeBlock,
   WeeklyReview,
 } from "@/lib/types";
 
@@ -135,6 +140,18 @@ function mapReminder(r: DbPendingReminder): Reminder {
   };
 }
 
+function mapPomodoroSession(p: DbPomodoroSession): PomodoroSession {
+  return {
+    id: p.id,
+    task_id: p.task_id,
+    kind: p.kind,
+    planned_minutes: p.planned_minutes,
+    started_at: p.started_at,
+    ended_at: p.ended_at,
+    completed: p.completed,
+  };
+}
+
 export async function fetchDataset(): Promise<MockDataset> {
   const supabase = createClient();
 
@@ -148,6 +165,8 @@ export async function fetchDataset(): Promise<MockDataset> {
     { data: ideaHistory, error: eIdeaHistory },
     { data: reviews, error: eReviews },
     { data: pendingReminders, error: eReminders },
+    { data: timeBlocks, error: eTimeBlocks },
+    { data: pomodoroSessions, error: ePomodoro },
   ] = await Promise.all([
     supabase.from("projects").select("*").order("sort_order"),
     supabase.from("tasks_view").select("*").order("created_at", { ascending: false }),
@@ -158,17 +177,25 @@ export async function fetchDataset(): Promise<MockDataset> {
     supabase.from("idea_history").select("*").order("created_at", { ascending: false }),
     supabase.from("weekly_reviews").select("*"),
     supabase.rpc("get_pending_reminders"),
+    supabase.from("time_blocks").select("*").order("start_at"),
+    supabase.from("pomodoro_sessions").select("*").order("started_at", { ascending: false }),
   ]);
 
-  const firstError = eProjects || eTasks || eMetrics || eCheckins || eRules || eIdeas || eIdeaHistory || eReviews || eReminders;
+  const firstError =
+    eProjects || eTasks || eMetrics || eCheckins || eRules || eIdeas || eIdeaHistory || eReviews ||
+    eReminders || eTimeBlocks || ePomodoro;
   if (firstError) throw firstError;
 
   const projectList = (projects ?? []).map(mapProject);
   const projectNameById = new Map(projectList.map((p) => [p.id, p.name]));
+  const taskList = (tasks ?? []).map((t) =>
+    mapTask(t as DbTaskView, projectNameById.get((t as DbTaskView).project_id ?? "") ?? null),
+  );
+  const taskById = new Map(taskList.map((t) => [t.id, t]));
 
   return {
     projects: projectList,
-    tasks: (tasks ?? []).map((t) => mapTask(t as DbTaskView, projectNameById.get((t as DbTaskView).project_id ?? "") ?? null)),
+    tasks: taskList,
     metrics: (metrics ?? []).map(mapMetric),
     metricCheckins: (checkins ?? []).map(mapCheckin),
     recurringRules: (rules ?? []).map(mapRule),
@@ -176,6 +203,18 @@ export async function fetchDataset(): Promise<MockDataset> {
     ideaHistory: (ideaHistory ?? []).map(mapIdeaHistory),
     weeklyReviews: (reviews ?? []).map(mapReview),
     reminders: (pendingReminders ?? []).map((r: DbPendingReminder) => mapReminder(r)),
+    timeBlocks: (timeBlocks ?? []).map((tb: DbTimeBlock): TimeBlock => {
+      const task = taskById.get(tb.task_id);
+      return {
+        id: tb.id,
+        task_id: tb.task_id,
+        task_title: task?.title ?? null,
+        project_id: task?.project_id ?? null,
+        start_at: tb.start_at,
+        end_at: tb.end_at,
+      };
+    }),
+    pomodoroSessions: (pomodoroSessions ?? []).map((p: DbPomodoroSession) => mapPomodoroSession(p)),
   };
 }
 
@@ -384,5 +423,54 @@ export async function dbSaveWeeklyReview(
 export async function dbSeedDefaultProjects() {
   const supabase = createClient();
   const { error } = await supabase.rpc("seed_default_projects");
+  if (error) throw error;
+}
+
+// ---------- Time blocking ----------
+
+export async function dbAddTimeBlock(taskId: string, startAt: string, endAt: string) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Belum login");
+
+  const { error } = await supabase
+    .from("time_blocks")
+    .insert({ user_id: user.id, task_id: taskId, start_at: startAt, end_at: endAt });
+  if (error) throw error;
+}
+
+export async function dbDeleteTimeBlock(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("time_blocks").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- Pomodoro ----------
+
+export async function dbLogPomodoroSession(input: {
+  taskId: string | null;
+  kind: PomodoroKind;
+  plannedMinutes: number;
+  startedAt: string;
+  endedAt: string;
+  completed: boolean;
+}) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Belum login");
+
+  const { error } = await supabase.from("pomodoro_sessions").insert({
+    user_id: user.id,
+    task_id: input.taskId,
+    kind: input.kind,
+    planned_minutes: input.plannedMinutes,
+    started_at: input.startedAt,
+    ended_at: input.endedAt,
+    completed: input.completed,
+  });
   if (error) throw error;
 }

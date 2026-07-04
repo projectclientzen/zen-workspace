@@ -51,8 +51,20 @@ export default function CalendarPage() {
     return map;
   }, [dataset]);
 
+  const blocksByDate = useMemo(() => {
+    const map = new Map<string, typeof dataset.timeBlocks>();
+    for (const b of dataset.timeBlocks) {
+      const key = new Date(b.start_at).toISOString().slice(0, 10);
+      const list = map.get(key) ?? [];
+      list.push(b);
+      map.set(key, list);
+    }
+    return map;
+  }, [dataset]);
+
   const today = new Date().toISOString().slice(0, 10);
   const selectedTasks = selectedDay ? tasksByDate.get(selectedDay) ?? [] : [];
+  const selectedBlocks = selectedDay ? blocksByDate.get(selectedDay) ?? [] : [];
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-6 sm:px-7">
@@ -89,6 +101,7 @@ export default function CalendarPage() {
             {cells.map(({ date, inMonth }) => {
               const key = date.toISOString().slice(0, 10);
               const dayTasks = tasksByDate.get(key) ?? [];
+              const dayBlocks = blocksByDate.get(key) ?? [];
               return (
                 <button
                   key={key}
@@ -110,6 +123,9 @@ export default function CalendarPage() {
                         }}
                       />
                     ))}
+                    {dayBlocks.length > 0 && (
+                      <span className="h-1.5 w-1.5 rounded-sm bg-amber" title="Ada blok waktu terjadwal" />
+                    )}
                   </div>
                 </button>
               );
@@ -146,6 +162,26 @@ export default function CalendarPage() {
               <div className="text-[10.5px] text-muted-foreground">{t.project_name ?? "Inbox"}</div>
             </div>
           ))}
+          {selectedBlocks.length > 0 && (
+            <>
+              <div className="mt-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                Blok waktu
+              </div>
+              {selectedBlocks.map((b) => (
+                <div
+                  key={b.id}
+                  className="cursor-pointer rounded-md border border-amber/40 bg-amber/10 px-2.5 py-2"
+                  onClick={() => openTaskDetail(b.task_id)}
+                >
+                  <div className="text-[12px] font-medium">{b.task_title ?? "Task"}</div>
+                  <div className="text-[10.5px] text-muted-foreground">
+                    {new Date(b.start_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} –{" "}
+                    {new Date(b.end_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </Card>
       </div>
     </div>

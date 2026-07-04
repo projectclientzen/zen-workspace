@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Newsreader, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { AppStateProvider } from "@/lib/app-state";
 import { AppShell } from "@/components/layout/app-shell";
+import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 
 const newsreader = Newsreader({
   variable: "--font-newsreader",
@@ -20,6 +21,25 @@ const instrumentSans = Instrument_Sans({
 export const metadata: Metadata = {
   title: "zen.",
   description: "Personal productivity dashboard",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Zen",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2F4A3E",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -34,6 +54,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        <RegisterServiceWorker />
         <AppStateProvider>
           <AppShell>{children}</AppShell>
         </AppStateProvider>

@@ -9,6 +9,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { PomodoroTimer } from "@/components/tasks/pomodoro-timer";
+import { TimeBlockScheduler } from "@/components/tasks/time-block-scheduler";
 import { useAppState } from "@/lib/app-state";
 import type { Priority, TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -161,6 +163,9 @@ export function TaskDetailDrawer() {
               >
                 Edit detail lengkap
               </Button>
+
+              <PomodoroTimer taskId={task.id} />
+              <TimeBlockScheduler taskId={task.id} />
 
               {task.source === "recurring" && (
                 <Badge variant="secondary" className="w-fit">

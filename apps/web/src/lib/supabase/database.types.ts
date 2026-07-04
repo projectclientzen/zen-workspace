@@ -120,3 +120,25 @@ export interface DbPendingReminder {
   title: string;
   sub: string;
 }
+
+export interface DbTimeBlock {
+  id: string;
+  user_id: string;
+  task_id: string;
+  start_at: string;
+  end_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbPomodoroSession {
+  id: string;
+  user_id: string;
+  task_id: string | null;
+  kind: "focus" | "break";
+  planned_minutes: number;
+  started_at: string;
+  ended_at: string | null;
+  completed: boolean;
+  created_at: string;
+}

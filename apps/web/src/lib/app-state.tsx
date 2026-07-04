@@ -15,9 +15,12 @@ import {
   dbAddMetric,
   dbAddRule,
   dbAddTask,
+  dbAddTimeBlock,
   dbConvertIdeaToTask,
   dbDeleteIdea,
+  dbDeleteTimeBlock,
   dbDismissReminder,
+  dbLogPomodoroSession,
   dbSaveIdeaVersion,
   dbSaveWeeklyReview,
   dbSeedDefaultProjects,
@@ -31,6 +34,7 @@ import type {
   Idea,
   Metric,
   MockDataset,
+  PomodoroKind,
   Priority,
   RecurringRule,
   Task,
@@ -56,6 +60,8 @@ const EMPTY_DATASET: MockDataset = {
   weeklyReviews: [],
   ideas: [],
   ideaHistory: [],
+  timeBlocks: [],
+  pomodoroSessions: [],
 };
 
 interface ToastItem {
@@ -115,6 +121,20 @@ interface AppState {
     periodEnd: string,
     patch: Partial<Pick<WeeklyReview, "done_summary" | "missed_summary" | "carry_over" | "next_focus">>,
   ) => void;
+
+  // Time blocking
+  addTimeBlock: (taskId: string, startAt: string, endAt: string) => void;
+  deleteTimeBlock: (id: string) => void;
+
+  // Pomodoro
+  logPomodoroSession: (input: {
+    taskId: string | null;
+    kind: PomodoroKind;
+    plannedMinutes: number;
+    startedAt: string;
+    endedAt: string;
+    completed: boolean;
+  }) => void;
 
   // UI: drawer detail task & form buat/edit task, dipanggil dari halaman mana pun
   openTaskId: string | null;
@@ -448,6 +468,36 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [refresh, pushToast],
   );
 
+  // ---------- Time blocking ----------
+  const addTimeBlock = useCallback(
+    (taskId: string, startAt: string, endAt: string) => {
+      runMutation(dbAddTimeBlock(taskId, startAt, endAt), "Gagal menjadwalkan blok waktu.");
+    },
+    [runMutation],
+  );
+
+  const deleteTimeBlock = useCallback(
+    (id: string) => {
+      runMutation(dbDeleteTimeBlock(id), "Gagal menghapus blok waktu.");
+    },
+    [runMutation],
+  );
+
+  // ---------- Pomodoro ----------
+  const logPomodoroSession = useCallback(
+    (input: {
+      taskId: string | null;
+      kind: PomodoroKind;
+      plannedMinutes: number;
+      startedAt: string;
+      endedAt: string;
+      completed: boolean;
+    }) => {
+      runMutation(dbLogPomodoroSession(input), "Gagal mencatat sesi pomodoro.");
+    },
+    [runMutation],
+  );
+
   const openTaskDetail = useCallback((id: string) => setOpenTaskId(id), []);
   const closeTaskDetail = useCallback(() => setOpenTaskId(null), []);
   const openTaskForm = useCallback(
@@ -488,6 +538,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     toggleRule,
     dismissReminder,
     saveWeeklyReview,
+    addTimeBlock,
+    deleteTimeBlock,
+    logPomodoroSession,
     openTaskId,
     openTaskDetail,
     closeTaskDetail,
