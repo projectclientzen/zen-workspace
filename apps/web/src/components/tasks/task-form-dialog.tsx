@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ type FormValues = z.infer<typeof schema>;
 export function TaskFormDialog() {
   const { dataset, taskForm, closeTaskForm, addTask, updateTask, pushToast } = useAppState();
   const editing = taskForm.taskId ? dataset.tasks.find((t) => t.id === taskForm.taskId) : null;
+  const [imagePath, setImagePath] = useState<string | null>(null);
 
   const {
     register,
@@ -78,6 +79,7 @@ export function TaskFormDialog() {
         due_time: due ? due.toISOString().slice(11, 16) : "",
         recurring_rule_id: editing.recurring_rule_id ?? NONE,
       });
+      setImagePath(editing.image_path ?? null);
     } else {
       reset({
         title: "",
@@ -89,9 +91,18 @@ export function TaskFormDialog() {
         due_time: "",
         recurring_rule_id: NONE,
       });
+      setImagePath(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskForm.open, taskForm.taskId]);
+
+  const onPickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setImagePath(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const onSubmit = (values: FormValues) => {
     let due_at: string | null = null;
@@ -106,6 +117,7 @@ export function TaskFormDialog() {
       title: values.title.trim(),
       notes: values.notes?.trim() || null,
       link: values.link?.trim() || null,
+      image_path: imagePath,
       project_id,
       priority: values.priority,
       due_at,
@@ -149,6 +161,27 @@ export function TaskFormDialog() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="link">Link</Label>
             <Input id="link" placeholder="https://…" {...register("link")} />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Gambar (opsional)</Label>
+            {imagePath && (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imagePath} alt="" className="h-[120px] w-full rounded-md border border-border object-cover" />
+                <button
+                  type="button"
+                  className="absolute top-1.5 right-1.5 rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white"
+                  onClick={() => setImagePath(null)}
+                >
+                  Hapus
+                </button>
+              </div>
+            )}
+            <label className="cursor-pointer rounded-md border border-dashed border-faint px-3 py-2 text-center text-[11.5px] font-semibold text-muted-foreground">
+              + Gambar
+              <input type="file" accept="image/*" className="hidden" onChange={onPickImage} />
+            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

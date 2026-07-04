@@ -35,8 +35,17 @@ export default function IdeationPage() {
   const [body, setBody] = useState("");
   const [link, setLink] = useState("");
   const [projectId, setProjectId] = useState(NONE);
+  const [imagePath, setImagePath] = useState<string | null>(null);
   const [filterProject, setFilterProject] = useState<"all" | "none" | string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
+
+  const pickImage = (e: React.ChangeEvent<HTMLInputElement>, onDone: (v: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => onDone(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const submit = () => {
     const trimmed = title.trim();
@@ -45,12 +54,14 @@ export default function IdeationPage() {
       title: trimmed,
       body: body.trim() || null,
       link: link.trim() || null,
+      image_path: imagePath,
       project_id: projectId === NONE ? null : projectId,
     });
     pushToast("Ide tersimpan.");
     setTitle("");
     setBody("");
     setLink("");
+    setImagePath(null);
     setProjectId(NONE);
   };
 
@@ -94,6 +105,23 @@ export default function IdeationPage() {
             </SelectContent>
           </Select>
           <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Tempel link URL (opsional)" />
+          {imagePath && (
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imagePath} alt="" className="h-[110px] w-full rounded-md border border-border object-cover" />
+              <button
+                type="button"
+                className="absolute top-1.5 right-1.5 rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white"
+                onClick={() => setImagePath(null)}
+              >
+                Hapus
+              </button>
+            </div>
+          )}
+          <label className="cursor-pointer rounded-md border border-dashed border-faint px-3 py-2 text-center text-[11.5px] font-semibold text-muted-foreground">
+            + Gambar
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => pickImage(e, setImagePath)} />
+          </label>
           <Button onClick={submit}>+ Simpan ide</Button>
         </Card>
 
@@ -139,6 +167,14 @@ export default function IdeationPage() {
                       ✕
                     </button>
                   </div>
+                  {i.image_path && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={i.image_path}
+                      alt=""
+                      className="h-[120px] w-full rounded-md border border-border object-cover"
+                    />
+                  )}
                   <div className="font-serif text-[16px] leading-snug font-medium text-pretty">{i.title}</div>
                   {i.body && <div className="text-[12.5px] leading-relaxed text-muted-foreground">{i.body}</div>}
                   <div className="mt-auto flex items-center gap-2 pt-1.5">
@@ -191,6 +227,32 @@ export default function IdeationPage() {
               rows={5}
               placeholder="Tulis detailnya…"
             />
+            {openIdea.image_path && (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={openIdea.image_path}
+                  alt=""
+                  className="h-[150px] w-full rounded-md border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  className="absolute top-1.5 right-1.5 rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white"
+                  onClick={() => updateIdea(openIdea.id, { image_path: null })}
+                >
+                  Hapus
+                </button>
+              </div>
+            )}
+            <label className="cursor-pointer rounded-md border border-dashed border-faint px-3 py-2 text-center text-[11.5px] font-semibold text-muted-foreground">
+              + Gambar
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => pickImage(e, (v) => updateIdea(openIdea.id, { image_path: v }))}
+              />
+            </label>
             <Input
               value={openIdea.link ?? ""}
               onChange={(e) => updateIdea(openIdea.id, { link: e.target.value })}

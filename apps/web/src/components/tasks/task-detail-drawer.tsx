@@ -114,6 +114,15 @@ export function TaskDetailDrawer() {
                 ))}
               </div>
 
+              {task.image_path && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={task.image_path}
+                  alt=""
+                  className="h-[140px] w-full rounded-lg border border-border object-cover"
+                />
+              )}
+
               {task.notes && (
                 <div className="rounded-lg bg-muted/60 p-3 text-[12.5px] leading-relaxed whitespace-pre-line">
                   {task.notes}
