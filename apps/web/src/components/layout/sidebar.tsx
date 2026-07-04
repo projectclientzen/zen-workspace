@@ -11,15 +11,18 @@ function NavItem({
   label,
   active,
   badge,
+  onNavigate,
 }: {
   href: string;
   label: string;
   active: boolean;
   badge?: number;
+  onNavigate?: () => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       className={cn(
         "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] transition-colors",
         active
@@ -37,14 +40,15 @@ function NavItem({
   );
 }
 
-export function AppSidebar() {
+/** Isi navigasi dipakai bersama oleh sidebar desktop (fixed) dan drawer mobile (Sheet). */
+export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { dataset, activeProjectId, setActiveProjectId, focusMode } = useAppState();
   const urgentGroups = getUrgentGroups(dataset, "all");
   const urgentCount = urgentGroups.reduce((sum, g) => sum + g.tasks.length, 0);
 
   return (
-    <aside className="flex h-full w-[226px] flex-none flex-col gap-0.5 overflow-y-auto bg-sidebar p-3 pb-3.5">
+    <div className="flex h-full flex-col gap-0.5 overflow-y-auto bg-sidebar p-3 pb-3.5">
       <div className="flex items-center gap-2 px-2 pb-4 pt-0.5">
         <div className="flex h-6.5 w-6.5 items-center justify-center rounded-lg bg-primary font-serif text-[13px] font-semibold text-primary-foreground">
           Z
@@ -56,12 +60,13 @@ export function AppSidebar() {
 
       {!focusMode && (
         <>
-          <NavItem href="/" label="Overview" active={pathname === "/"} />
+          <NavItem href="/" label="Overview" active={pathname === "/"} onNavigate={onNavigate} />
           <NavItem
             href="/urgent"
             label="⚠ Urgent"
             active={pathname === "/urgent"}
             badge={urgentCount}
+            onNavigate={onNavigate}
           />
         </>
       )}
@@ -75,7 +80,10 @@ export function AppSidebar() {
           <Link
             key={p.id}
             href={`/projects/${p.id}`}
-            onClick={() => setActiveProjectId(p.id)}
+            onClick={() => {
+              setActiveProjectId(p.id);
+              onNavigate?.();
+            }}
             className={cn(
               "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors",
               pathname === `/projects/${p.id}`
@@ -94,16 +102,29 @@ export function AppSidebar() {
       {!focusMode && (
         <>
           <div className="my-2.5 h-px bg-white/10" />
-          <NavItem href="/ideation" label="Ideation" active={pathname === "/ideation"} />
-          <NavItem href="/inbox" label="Inbox" active={pathname === "/inbox"} />
-          <NavItem href="/calendar" label="Calendar" active={pathname === "/calendar"} />
-          <NavItem href="/weekly-review" label="Weekly Review" active={pathname === "/weekly-review"} />
-          <NavItem href="/metrics" label="Metrics" active={pathname === "/metrics"} />
+          <NavItem href="/ideation" label="Ideation" active={pathname === "/ideation"} onNavigate={onNavigate} />
+          <NavItem href="/inbox" label="Inbox" active={pathname === "/inbox"} onNavigate={onNavigate} />
+          <NavItem href="/calendar" label="Calendar" active={pathname === "/calendar"} onNavigate={onNavigate} />
+          <NavItem
+            href="/weekly-review"
+            label="Weekly Review"
+            active={pathname === "/weekly-review"}
+            onNavigate={onNavigate}
+          />
+          <NavItem href="/metrics" label="Metrics" active={pathname === "/metrics"} onNavigate={onNavigate} />
         </>
       )}
 
       <div className="mt-auto" />
-      <NavItem href="/settings" label="Settings" active={pathname === "/settings"} />
+      <NavItem href="/settings" label="Settings" active={pathname === "/settings"} onNavigate={onNavigate} />
+    </div>
+  );
+}
+
+export function AppSidebar() {
+  return (
+    <aside className="hidden w-[226px] flex-none md:flex">
+      <SidebarNav />
     </aside>
   );
 }

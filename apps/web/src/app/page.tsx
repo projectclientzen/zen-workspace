@@ -64,13 +64,13 @@ export default function OverviewPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-[1160px] px-7 pb-11 pt-0">
-      <div className="grid grid-cols-4 border-b border-border">
+    <div className="mx-auto max-w-[1160px] px-4 pb-11 pt-0 sm:px-7">
+      <div className="grid grid-cols-2 border-b border-border sm:grid-cols-4">
         {attentionCards.map((a) => (
           <Link
             key={a.label}
             href={a.href}
-            className="flex items-center gap-3 border-r border-border px-5 py-3.5 hover:bg-muted/40"
+            className="flex items-center gap-3 border-r border-b border-border px-3 py-3 last:border-r-0 sm:border-b-0 sm:px-5 sm:py-3.5"
           >
             <span
               className={`font-serif text-3xl ${
@@ -85,8 +85,8 @@ export default function OverviewPage() {
       </div>
 
       <div className="pt-6">
-        <div className="flex items-baseline gap-3">
-          <div className="font-serif text-[27px] font-medium">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <div className="font-serif text-2xl font-medium sm:text-[27px]">
             {focusMode ? "Fokus satu project." : "Tiga hal hari ini."}
           </div>
           <Button size="sm" className="ml-auto" onClick={() => openTaskForm({ defaultProjectId: focusMode ? activeProjectId : undefined })}>
@@ -94,7 +94,7 @@ export default function OverviewPage() {
           </Button>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-3.5">
+        <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
           {top3.map((t) => (
             <Card
               key={t.id}
@@ -130,7 +130,7 @@ export default function OverviewPage() {
           ))}
         </div>
 
-        <div className="mt-6 grid grid-cols-[1fr_314px] gap-5">
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_314px]">
           <div>
             <div className="mb-2.5 flex items-baseline gap-2.5">
               <div className="text-sm font-bold">Hari Ini</div>
@@ -198,7 +198,7 @@ export default function OverviewPage() {
             </Card>
 
             <div className="mb-2.5 mt-6 text-sm font-bold">Project</div>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {stats.map((s) => (
                 <Link key={s.project_id} href={`/projects/${s.project_id}`}>
                   <Card className="gap-2 p-3.5 hover:border-faint">

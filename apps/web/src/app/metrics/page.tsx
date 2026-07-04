@@ -59,7 +59,7 @@ export default function MetricsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1000px] px-7 py-6">
+    <div className="mx-auto max-w-[1000px] px-4 py-6 sm:px-7">
       <div className="font-serif text-2xl font-medium">Metrics</div>
       <p className="mb-4.5 mt-1 text-[12.5px] text-muted-foreground">
         Ukuran ringan: completion percent + streak, tanpa skor menghakimi.

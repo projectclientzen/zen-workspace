@@ -23,7 +23,7 @@ export default function UrgentPage() {
   const total = groups.reduce((sum, g) => sum + g.tasks.length, 0);
 
   return (
-    <div className="mx-auto max-w-[860px] px-7 py-6">
+    <div className="mx-auto max-w-[860px] px-4 py-6 sm:px-7">
       <div className="flex items-baseline gap-3">
         <span className="font-serif text-2xl font-medium">⚠ Urgent</span>
         <span className="font-serif text-xl font-medium text-destructive">{total}</span>

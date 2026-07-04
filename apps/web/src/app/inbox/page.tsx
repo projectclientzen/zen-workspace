@@ -17,7 +17,7 @@ export default function InboxPage() {
   const items = getInboxTasks(dataset);
 
   return (
-    <div className="mx-auto max-w-[840px] px-7 py-6">
+    <div className="mx-auto max-w-[840px] px-4 py-6 sm:px-7">
       <div className="font-serif text-2xl font-medium">Inbox</div>
       <div className="mb-4.5 mt-1 text-[12.5px] text-muted-foreground">
         {items.length} item belum ditriase

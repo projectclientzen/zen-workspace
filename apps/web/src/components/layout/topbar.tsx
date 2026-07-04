@@ -17,6 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { SidebarNav } from "@/components/layout/sidebar";
 import { useAppState } from "@/lib/app-state";
 
 export function Topbar() {
@@ -31,6 +33,7 @@ export function Topbar() {
     setScenario,
   } = useAppState();
   const [capture, setCapture] = useState("");
+  const [navOpen, setNavOpen] = useState(false);
   const router = useRouter();
 
   const submitCapture = () => {
@@ -44,19 +47,32 @@ export function Topbar() {
   const pending = dataset.reminders.filter((r) => r.status === "pending");
 
   return (
-    <div className="flex items-center gap-2.5 border-b border-border bg-card px-6 py-3">
+    <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2.5 sm:gap-2.5 sm:px-6 sm:py-3">
+      <button
+        className="flex h-9 w-9 flex-none items-center justify-center rounded-md border border-border text-sm md:hidden"
+        onClick={() => setNavOpen(true)}
+        aria-label="Buka menu"
+      >
+        ☰
+      </button>
+      <Sheet open={navOpen} onOpenChange={setNavOpen}>
+        <SheetContent side="left" className="w-[240px] p-0 sm:max-w-[240px]">
+          <SidebarNav onNavigate={() => setNavOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
       <Input
         value={capture}
         onChange={(e) => setCapture(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") submitCapture();
         }}
-        placeholder="Tangkap cepat → Inbox…"
-        className="max-w-[420px] flex-1 bg-background"
+        placeholder="Tangkap cepat…"
+        className="min-w-0 flex-1 bg-background sm:max-w-[420px]"
       />
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
         <Select value={scenario} onValueChange={(v) => setScenario(v as typeof scenario)}>
-          <SelectTrigger className="h-8 w-[140px] text-xs" title="Skenario data (dev only)">
+          <SelectTrigger className="hidden h-8 w-[140px] text-xs sm:flex" title="Skenario data (dev only)">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -111,7 +127,7 @@ export function Topbar() {
           onClick={toggleFocusMode}
           className="gap-1.5"
         >
-          ◎ {focusMode ? "Focus Mode: ON" : "Focus Mode"}
+          ◎ <span className="hidden sm:inline">{focusMode ? "Focus Mode: ON" : "Focus Mode"}</span>
         </Button>
       </div>
     </div>

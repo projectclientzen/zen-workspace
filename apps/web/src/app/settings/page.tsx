@@ -45,7 +45,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[720px] px-7 py-6">
+    <div className="mx-auto max-w-[720px] px-4 py-6 sm:px-7">
       <div className="font-serif text-2xl font-medium">Settings</div>
 
       <Card className="mt-5 gap-3 p-4">

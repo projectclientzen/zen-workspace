@@ -85,12 +85,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   );
 
   return (
-    <div className="mx-auto max-w-[1160px] px-7 py-6">
-      <div className="flex items-center gap-3">
+    <div className="mx-auto max-w-[1160px] px-4 py-6 sm:px-7">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="h-3 w-3 rounded-md" style={{ background: project.color ?? "#8A857A" }} />
         <span className="font-serif text-2xl font-medium">{project.name}</span>
         <span className="text-xs text-muted-foreground">{allTasks.length} task</span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
           <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
             <TabsList>
               <TabsTrigger value="list">List</TabsTrigger>
@@ -142,7 +142,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       )}
 
       {tab === "board" && (
-        <div className="mt-4.5 grid grid-cols-3 gap-3.5">
+        <div className="mt-4.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3 sm:overflow-visible">
           {STATUS_COLS.map((col) => {
             const cards = allTasks.filter((t) => t.status === col.key);
             return (

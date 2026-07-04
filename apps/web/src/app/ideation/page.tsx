@@ -64,14 +64,14 @@ export default function IdeationPage() {
   const openHistory = openId ? dataset.ideaHistory.filter((h) => h.idea_id === openId) : [];
 
   return (
-    <div className="mx-auto max-w-[1080px] px-7 py-6">
+    <div className="mx-auto max-w-[1080px] px-4 py-6 sm:px-7">
       <div className="font-serif text-2xl font-medium">Ideation</div>
       <p className="mb-4.5 mt-1 max-w-[560px] text-[12.5px] text-muted-foreground">
         Ide mentah berbentuk catatan — godok nanti, assign saat siap. Konversi ke task memindahkan
         isinya, ide lama akan hilang dari daftar.
       </p>
 
-      <div className="grid grid-cols-[320px_1fr] items-start gap-5">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[320px_1fr]">
         <Card className="sticky top-4 gap-2.5 p-4">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Judul ide baru" />
           <Textarea
@@ -118,7 +118,7 @@ export default function IdeationPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {ideas.map((i) => {
               const project = dataset.projects.find((p) => p.id === i.project_id);
               return (

@@ -85,7 +85,7 @@ export default function WeeklyReviewPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[720px] px-7 py-6">
+    <div className="mx-auto max-w-[720px] px-4 py-6 sm:px-7">
       <div className="flex items-baseline gap-3">
         <span className="font-serif text-2xl font-medium">Weekly Review</span>
         <span className="text-[12px] text-muted-foreground">

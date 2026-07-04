@@ -55,7 +55,7 @@ export default function CalendarPage() {
   const selectedTasks = selectedDay ? tasksByDate.get(selectedDay) ?? [] : [];
 
   return (
-    <div className="mx-auto max-w-[1100px] px-7 py-6">
+    <div className="mx-auto max-w-[1100px] px-4 py-6 sm:px-7">
       <div className="flex items-baseline gap-3">
         <span className="font-serif text-2xl font-medium capitalize">
           {cursor.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
@@ -76,7 +76,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="mt-4.5 grid grid-cols-[1fr_300px] items-start gap-5">
+      <div className="mt-4.5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_300px]">
         <div>
           <div className="mb-1.5 grid grid-cols-7 gap-1.5">
             {DAY_NAMES.map((d) => (
