@@ -104,7 +104,7 @@ export function Topbar() {
                 <button
                   className="min-w-0 flex-1 text-left"
                   onClick={() => {
-                    if (r.target_type === "digest") router.push("/urgent");
+                    if (r.target_type === "digest") router.push("/");
                   }}
                 >
                   <div className="text-[12px] font-semibold leading-snug">{r.title}</div>

@@ -1,17 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAppState } from "@/lib/app-state";
+import type { Task } from "@/lib/types";
 import {
   getAttentionSummary,
   getCheckinRows,
   getProjectStats,
   getTodayTasks,
   getTop3,
+  scopeTasks,
 } from "@/lib/selectors";
+
+function rhythm14(tasks: Task[]) {
+  const days: { label: string; value: number }[] = [];
+  for (let i = 13; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const count = tasks.filter((t) => t.completed_at && t.completed_at.slice(0, 10) === key).length;
+    days.push({ label: d.toLocaleDateString("id-ID", { day: "numeric" }), value: count });
+  }
+  return days;
+}
 
 function fmtDue(iso: string | null) {
   if (!iso) return "";
@@ -55,6 +71,8 @@ export default function OverviewPage() {
     (s) => scope === "all" || s.project_id === scope,
   );
   const checkinRows = getCheckinRows(dataset, scope);
+  const rhythm = rhythm14(scopeTasks(dataset.tasks, scope));
+  const rhythmTotal = rhythm.reduce((sum, d) => sum + d.value, 0);
 
   const attentionCards = [
     { label: "Overdue", n: attention.overdue, href: "/urgent" },
@@ -220,6 +238,24 @@ export default function OverviewPage() {
               <div className="text-[12.5px] font-bold">Ringkasan</div>
               <div className="text-[11.5px] text-muted-foreground">
                 Scope aktif: <Badge variant="secondary">{scopeLabel(scope, dataset.projects)}</Badge>
+              </div>
+            </Card>
+
+            <Card className="gap-1.5 p-4">
+              <div className="flex items-baseline">
+                <span className="text-[12.5px] font-bold">Rhythm</span>
+                <span className="ml-auto font-mono text-[10.5px] text-muted-foreground">
+                  {rhythmTotal} selesai / 14h
+                </span>
+              </div>
+              <div className="h-[56px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={rhythm}>
+                    <XAxis dataKey="label" hide />
+                    <Tooltip cursor={{ fill: "transparent" }} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                    <Bar dataKey="value" radius={[2, 2, 1, 1]} fill="var(--primary)" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </Card>
 

@@ -175,6 +175,36 @@ export default function MetricsPage() {
           </div>
         )}
       </div>
+
+      <div className="mt-7 mb-2.5 text-sm font-bold">Produktivitas per project</div>
+      <p className="mb-3 text-[11.5px] text-muted-foreground">
+        Gabungan completion percent task + streak metrik — tanpa skor tunggal.
+      </p>
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+        {dataset.projects.map((p) => {
+          const tasks = dataset.tasks.filter((t) => t.project_id === p.id && t.status !== "dropped");
+          const doneCount = tasks.filter((t) => t.status === "done").length;
+          const pct = tasks.length === 0 ? 0 : Math.round((doneCount / tasks.length) * 100);
+          const projectMetrics = checkinRows.filter((r) => r.metric.project_id === p.id);
+          return (
+            <Card key={p.id} className="gap-2 p-3.5">
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: p.color ?? "#8A857A" }} />
+                <span className="truncate text-[12.5px] font-bold">{p.name}</span>
+                <span className="ml-auto font-mono text-[11px] text-muted-foreground">{pct}%</span>
+              </div>
+              <div className="h-[3px] overflow-hidden rounded bg-border">
+                <div className="h-full rounded" style={{ width: `${pct}%`, background: p.color ?? "#8A857A" }} />
+              </div>
+              <div className="text-[10.5px] text-muted-foreground">
+                {projectMetrics.length === 0
+                  ? "belum ada metrik"
+                  : projectMetrics.map((r) => `${r.metric.name} · ${r.streak}h`).join(" · ")}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
