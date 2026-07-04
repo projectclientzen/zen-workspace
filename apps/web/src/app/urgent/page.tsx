@@ -10,7 +10,14 @@ const GROUP_LABEL: Record<string, string> = {
 };
 
 export default function UrgentPage() {
-  const { dataset, activeProjectId, focusMode } = useAppState();
+  const {
+    dataset,
+    activeProjectId,
+    focusMode,
+    openTaskDetail,
+    postponeToTomorrow,
+    toggleFocusToday,
+  } = useAppState();
   const scope = focusMode ? activeProjectId : "all";
   const groups = getUrgentGroups(dataset, scope);
   const total = groups.reduce((sum, g) => sum + g.tasks.length, 0);
@@ -46,14 +53,15 @@ export default function UrgentPage() {
               {g.tasks.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center gap-2.5 border-b border-border px-4 py-3 last:border-b-0"
+                  className="flex cursor-pointer items-center gap-2.5 border-b border-border px-4 py-3 last:border-b-0 hover:bg-muted/30"
+                  onClick={() => openTaskDetail(t.id)}
                 >
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13.5px] font-medium">
                       {t.source === "recurring" ? "↻ " : ""}
                       {t.title}
                     </div>
-                    <div className="mt-0.5 text-[10.5px] font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                    <div className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">
                       {t.project_name ?? "Inbox"}
                     </div>
                   </div>
@@ -62,6 +70,16 @@ export default function UrgentPage() {
                       ? new Date(t.due_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })
                       : ""}
                   </span>
+                  <button
+                    className="flex-none rounded-md border border-border px-2 py-1 text-[10.5px] font-bold text-primary hover:border-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (g.kind === "overdue") postponeToTomorrow(t.id);
+                      else toggleFocusToday(t.id);
+                    }}
+                  >
+                    {g.kind === "overdue" ? "→ besok" : "★"}
+                  </button>
                 </div>
               ))}
             </Card>

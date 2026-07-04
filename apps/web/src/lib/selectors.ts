@@ -1,4 +1,4 @@
-import type { AttentionSummary, MockDataset, ProjectStat, Task, UrgentGroup } from "@/lib/types";
+import type { AttentionSummary, Metric, MockDataset, ProjectStat, Task, UrgentGroup } from "@/lib/types";
 
 function jakartaDayStart(offset = 0): Date {
   const d = new Date();
@@ -80,4 +80,56 @@ export function getTop3(dataset: MockDataset, projectId: string | "all"): Task[]
 
 export function getInboxTasks(dataset: MockDataset): Task[] {
   return dataset.tasks.filter((t) => t.project_id === null && t.status !== "dropped" && t.status !== "done");
+}
+
+export function isMetricDueToday(metric: Metric): boolean {
+  if (!metric.is_active) return false;
+  if (metric.schedule_type === "daily") return true;
+  const weekday = jakartaDayStart(0).getDay();
+  return (metric.weekdays ?? []).includes(weekday);
+}
+
+export function computeStreak(dataset: MockDataset, metricId: string): number {
+  let d = jakartaDayStart(0);
+  let streak = 0;
+  const metric = dataset.metrics.find((m) => m.id === metricId);
+  if (!metric) return 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const dateStr = d.toISOString().slice(0, 10);
+    const checkin = dataset.metricCheckins.find(
+      (c) => c.metric_id === metricId && c.checkin_date === dateStr,
+    );
+    const dow = d.getDay();
+    const scheduled = metric.schedule_type === "daily" || (metric.weekdays ?? []).includes(dow);
+    const done = !!checkin && (checkin.value_bool === true || checkin.value_number != null);
+    if (scheduled && !done) break;
+    if (scheduled && done) streak += 1;
+    d = new Date(d);
+    d.setDate(d.getDate() - 1);
+    if (streak > 365) break; // safety guard
+  }
+  return streak;
+}
+
+export interface CheckinRow {
+  metric: Metric;
+  due: boolean;
+  doneToday: boolean;
+  streak: number;
+}
+
+export function getCheckinRows(dataset: MockDataset, projectId: string | "all"): CheckinRow[] {
+  const today = jakartaDayStart(0).toISOString().slice(0, 10);
+  return dataset.metrics
+    .filter((m) => m.is_active && (projectId === "all" || m.project_id === projectId))
+    .map((m) => {
+      const checkin = dataset.metricCheckins.find((c) => c.metric_id === m.id && c.checkin_date === today);
+      return {
+        metric: m,
+        due: isMetricDueToday(m),
+        doneToday: !!checkin && (checkin.value_bool === true || checkin.value_number != null),
+        streak: computeStreak(dataset, m.id),
+      };
+    });
 }

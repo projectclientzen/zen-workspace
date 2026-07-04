@@ -13,11 +13,14 @@ import {
 import { useAppState } from "@/lib/app-state";
 
 export function Topbar() {
-  const { addInboxTask, focusMode, toggleFocusMode, scenario, setScenario } = useAppState();
+  const { addTask, pushToast, focusMode, toggleFocusMode, scenario, setScenario } = useAppState();
   const [capture, setCapture] = useState("");
 
   const submitCapture = () => {
-    addInboxTask(capture);
+    const title = capture.trim();
+    if (!title) return;
+    addTask({ title, source: "inbox" });
+    pushToast("Masuk Inbox ✓");
     setCapture("");
   };
 

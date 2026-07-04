@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAppState } from "@/lib/app-state";
 import {
   getAttentionSummary,
+  getCheckinRows,
   getProjectStats,
   getTodayTasks,
   getTop3,
@@ -33,7 +35,17 @@ function scopeLabel(scope: string, projects: { id: string; name: string }[]) {
 }
 
 export default function OverviewPage() {
-  const { dataset, activeProjectId, focusMode } = useAppState();
+  const {
+    dataset,
+    activeProjectId,
+    focusMode,
+    openTaskDetail,
+    openTaskForm,
+    toggleFocusToday,
+    setTaskStatus,
+    upsertCheckin,
+    pushToast,
+  } = useAppState();
 
   const scope = focusMode ? activeProjectId : "all";
   const attention = getAttentionSummary(dataset, scope);
@@ -42,6 +54,7 @@ export default function OverviewPage() {
   const stats = getProjectStats(dataset).filter(
     (s) => scope === "all" || s.project_id === scope,
   );
+  const checkinRows = getCheckinRows(dataset, scope);
 
   const attentionCards = [
     { label: "Overdue", n: attention.overdue, href: "/urgent" },
@@ -72,18 +85,39 @@ export default function OverviewPage() {
       </div>
 
       <div className="pt-6">
-        <div className="font-serif text-[27px] font-medium">
-          {focusMode ? "Fokus satu project." : "Tiga hal hari ini."}
+        <div className="flex items-baseline gap-3">
+          <div className="font-serif text-[27px] font-medium">
+            {focusMode ? "Fokus satu project." : "Tiga hal hari ini."}
+          </div>
+          <Button size="sm" className="ml-auto" onClick={() => openTaskForm({ defaultProjectId: focusMode ? activeProjectId : undefined })}>
+            + Task Baru
+          </Button>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-3.5">
           {top3.map((t) => (
-            <Card key={t.id} className="min-h-[130px] justify-between gap-3 p-4">
+            <Card
+              key={t.id}
+              className="min-h-[130px] cursor-pointer justify-between gap-3 p-4"
+              onClick={() => openTaskDetail(t.id)}
+            >
               <span className="text-[11px] font-semibold text-muted-foreground">
                 {t.project_name ?? "Inbox"}
               </span>
               <div className="text-[15px] font-semibold leading-snug">{t.title}</div>
-              <div className="text-[11.5px] font-semibold text-destructive">{fmtDue(t.due_at)}</div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11.5px] font-semibold text-destructive">{fmtDue(t.due_at)}</span>
+                <button
+                  className="ml-auto flex h-6 w-6 items-center justify-center rounded-full border-[1.5px] border-faint text-xs text-transparent hover:border-primary hover:text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTaskStatus(t.id, "done");
+                    pushToast("Selesai ✓");
+                  }}
+                >
+                  ✓
+                </button>
+              </div>
             </Card>
           ))}
           {Array.from({ length: Math.max(0, 3 - top3.length) }).map((_, i) => (
@@ -112,7 +146,8 @@ export default function OverviewPage() {
               {today.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center gap-2.5 border-b border-border px-4 py-3 last:border-b-0"
+                  className="flex cursor-pointer items-center gap-2.5 border-b border-border px-4 py-3 last:border-b-0 hover:bg-muted/30"
+                  onClick={() => openTaskDetail(t.id)}
                 >
                   <span
                     className="h-6 w-[3px] flex-none rounded"
@@ -125,6 +160,16 @@ export default function OverviewPage() {
                             : "var(--faint)",
                     }}
                   />
+                  <button
+                    className="flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full border-[1.5px] border-faint text-[11px] text-transparent hover:border-primary hover:text-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTaskStatus(t.id, "done");
+                      pushToast("Selesai ✓");
+                    }}
+                  >
+                    ✓
+                  </button>
                   <span className="text-[13.5px] font-medium">
                     {t.source === "recurring" ? "↻ " : ""}
                     {t.title}
@@ -139,6 +184,15 @@ export default function OverviewPage() {
                   >
                     {fmtDue(t.due_at)}
                   </span>
+                  <button
+                    className={`flex-none text-[14px] ${t.is_focus_today ? "text-amber" : "text-faint"}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFocusToday(t.id);
+                    }}
+                  >
+                    ★
+                  </button>
                 </div>
               ))}
             </Card>
@@ -146,15 +200,17 @@ export default function OverviewPage() {
             <div className="mb-2.5 mt-6 text-sm font-bold">Project</div>
             <div className="grid grid-cols-3 gap-2.5">
               {stats.map((s) => (
-                <Card key={s.project_id} className="gap-2 p-3.5">
-                  <span className="truncate text-[12.5px] font-bold">{s.project_name}</span>
-                  <div className="text-[10.5px] text-muted-foreground">
-                    {s.open} open
-                    {s.overdue > 0 && (
-                      <span className="font-bold text-destructive"> · {s.overdue} overdue</span>
-                    )}
-                  </div>
-                </Card>
+                <Link key={s.project_id} href={`/projects/${s.project_id}`}>
+                  <Card className="gap-2 p-3.5 hover:border-faint">
+                    <span className="truncate text-[12.5px] font-bold">{s.project_name}</span>
+                    <div className="text-[10.5px] text-muted-foreground">
+                      {s.open} open
+                      {s.overdue > 0 && (
+                        <span className="font-bold text-destructive"> · {s.overdue} overdue</span>
+                      )}
+                    </div>
+                  </Card>
+                </Link>
               ))}
             </div>
           </div>
@@ -165,6 +221,44 @@ export default function OverviewPage() {
               <div className="text-[11.5px] text-muted-foreground">
                 Scope aktif: <Badge variant="secondary">{scopeLabel(scope, dataset.projects)}</Badge>
               </div>
+            </Card>
+
+            <Card className="gap-1 p-4">
+              <div className="mb-1 flex items-baseline">
+                <span className="text-[12.5px] font-bold">Check-in hari ini</span>
+                <Link href="/metrics" className="ml-auto text-[10.5px] text-muted-foreground underline">
+                  lihat semua
+                </Link>
+              </div>
+              {checkinRows.length === 0 && (
+                <div className="py-2 text-[11.5px] text-muted-foreground">Belum ada metrik.</div>
+              )}
+              {checkinRows.map(({ metric, due, doneToday, streak }) => (
+                <div
+                  key={metric.id}
+                  className="flex items-center gap-2 border-b border-border py-2 last:border-b-0"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12.5px] font-medium">{metric.name}</div>
+                    <div className="font-serif text-[11px] italic text-muted-foreground">
+                      {streak > 0 ? `${streak} hari beruntun` : "belum mulai"}
+                    </div>
+                  </div>
+                  {doneToday ? (
+                    <span className="text-[13px] font-bold text-primary">✓</span>
+                  ) : due ? (
+                    <button
+                      className="rounded-md border border-primary px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/10"
+                      onClick={() => {
+                        upsertCheckin(metric.id, new Date().toISOString().slice(0, 10), true);
+                        pushToast("Tersimpan ✓");
+                      }}
+                    >
+                      Ya ✓
+                    </button>
+                  ) : null}
+                </div>
+              ))}
             </Card>
           </div>
         </div>
