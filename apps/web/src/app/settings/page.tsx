@@ -20,19 +20,34 @@ import type { RecurringFrequency } from "@/lib/types";
 const NONE = "__none__";
 const WEEKDAY_LABEL = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
-type PushStatus = "idle" | "granted" | "denied" | "unsupported";
+type PushStatus = "idle" | "granted" | "subscribed" | "denied" | "unsupported";
+
+function urlBase64ToUint8Array(base64: string) {
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
 
 function usePushNotification() {
   const [status, setStatus] = useState<PushStatus>("idle");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       setStatus("unsupported");
       return;
     }
-    if (Notification.permission === "granted") setStatus("granted");
-    else if (Notification.permission === "denied") setStatus("denied");
+    if (Notification.permission === "denied") {
+      setStatus("denied");
+      return;
+    }
+    if (Notification.permission === "granted") {
+      setStatus("granted");
+      navigator.serviceWorker.ready
+        .then((reg) => reg.pushManager.getSubscription())
+        .then((sub) => { if (sub) setStatus("subscribed"); })
+        .catch(() => {});
+    }
   }, []);
 
   const enable = async () => {
@@ -46,10 +61,12 @@ function usePushNotification() {
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) { setStatus("granted"); return; }
 
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKey,
-      });
+      const sub =
+        (await reg.pushManager.getSubscription()) ??
+        (await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        }));
 
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -62,6 +79,22 @@ function usePushNotification() {
           auth: subJson.keys?.auth ?? "",
         }, { onConflict: "endpoint" });
       }
+      setStatus("subscribed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const disable = async () => {
+    setLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        const supabase = createClient();
+        await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+        await sub.unsubscribe();
+      }
       setStatus("granted");
     } finally {
       setLoading(false);
@@ -69,7 +102,7 @@ function usePushNotification() {
   };
 
   const sendTest = async () => {
-    if (status !== "granted") return;
+    if (status !== "granted" && status !== "subscribed") return;
     const reg = await navigator.serviceWorker.ready;
     reg.showNotification("Zen · Test Notifikasi", {
       body: "Push notification aktif dan berjalan.",
@@ -77,7 +110,7 @@ function usePushNotification() {
     });
   };
 
-  return { status, loading, enable, sendTest };
+  return { status, loading, enable, disable, sendTest };
 }
 
 export default function SettingsPage() {
@@ -236,19 +269,25 @@ export default function SettingsPage() {
           Izinkan notifikasi untuk reminder &amp; digest pagi. Reminder selalu tampil in-app juga.
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
-          {push.status !== "unsupported" && push.status !== "granted" && (
+          {(push.status === "idle" || push.status === "denied" || push.status === "granted") && (
             <Button size="sm" onClick={push.enable} disabled={push.loading || push.status === "denied"}>
               {push.loading ? "Memproses…" : "Aktifkan"}
             </Button>
           )}
-          {push.status === "granted" && (
-            <Button size="sm" variant="outline" onClick={push.sendTest}>Kirim tes</Button>
+          {push.status === "subscribed" && (
+            <>
+              <Button size="sm" variant="outline" onClick={push.sendTest}>Kirim tes</Button>
+              <Button size="sm" variant="outline" className="text-destructive" onClick={push.disable} disabled={push.loading}>
+                {push.loading ? "Memproses…" : "Nonaktifkan"}
+              </Button>
+            </>
           )}
           <span className={`text-[11px] font-semibold ${
-            push.status === "granted" ? "text-primary" :
+            push.status === "subscribed" ? "text-primary" :
             push.status === "denied" ? "text-destructive" : "text-muted-foreground"
           }`}>
-            {push.status === "granted" ? "Aktif ✓" :
+            {push.status === "subscribed" ? "Aktif ✓" :
+             push.status === "granted" ? "Izin diberikan — belum berlangganan." :
              push.status === "denied" ? "Diblokir browser — reminder tetap in-app." :
              push.status === "unsupported" ? "Browser tidak mendukung." : "Belum aktif"}
           </span>

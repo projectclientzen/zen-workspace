@@ -244,8 +244,8 @@ Push notification browser sungguhan tadinya ditunda ke v1.1 — **sekarang diker
 ## Sprint N — Push Notification asli (v1.1 → dikerjakan sekarang)
 
 - [x] Backend selesai (tabel, RPC, Edge Function) — lihat BE_Tasks Sprint M.
-- [ ] **PUSH-FE-1 Tombol "Aktifkan push" di Settings** — request `Notification.requestPermission()`, `serviceWorkerRegistration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: <NEXT_PUBLIC_VAPID_PUBLIC_KEY> })`, simpan subscription (endpoint + keys) ke tabel `push_subscriptions`. **Belum dikerjakan — ini pekerjaan FE berikutnya.**
-- [ ] **PUSH-FE-2 Status "aktif/nonaktif"** tampilkan status subscription saat ini + tombol nonaktifkan (unsubscribe + hapus baris `push_subscriptions`).
+- [x] **PUSH-FE-1 Tombol "Aktifkan push" di Settings** — request permission, subscribe dengan VAPID key (dikonversi ke Uint8Array demi kompatibilitas browser), upsert subscription ke `push_subscriptions`. Catatan: butuh `NEXT_PUBLIC_VAPID_PUBLIC_KEY` di env Netlify — tanpa itu status berhenti di "Izin diberikan — belum berlangganan".
+- [x] **PUSH-FE-2 Status "aktif/nonaktif"** — status kini cek subscription aktual (`pushManager.getSubscription()`), bukan cuma permission; ada tombol Nonaktifkan (unsubscribe + hapus baris `push_subscriptions`).
 
 ## Sprint O — Google Calendar sync (diminta user, belum mulai)
 
