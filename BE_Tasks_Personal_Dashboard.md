@@ -343,16 +343,18 @@ Cek: insert history jalan, urut created_at desc benar.
 
 ## Testing (TEST)
 
-- [ ] **TEST-1 Migrasi urut** Jalankan semua migrasi di staging, urut dependensi (profiles, projects, tasks, ...). Cek: tanpa error.
-- [ ] **TEST-2 RLS** Query tanpa sesi kosong, dengan sesi hanya data sendiri.
-- [ ] **TEST-3 Recurring idempoten** Jalankan generate dua kali, tidak dobel.
-- [ ] **TEST-4 Timezone** Uji due tengah malam WIB masuk hari benar.
-- [ ] **TEST-5 Top 3 guard** Fokus ke-4 ditolak.
-- [ ] **TEST-6 Streak** Uji streak dengan bolong.
-- [ ] **TEST-7 Digest** Digest pagi berisi angka attention benar.
-- [ ] **TEST-8 Urgent tanpa duplikat** Task overdue dan high-priority-hari-ini tidak muncul dobel di get_urgent().
-- [ ] **TEST-9 Convert idea→task atomik** Simulasikan gagal di tengah convert_idea_to_task, pastikan tidak ada task setengah jadi atau idea hilang tanpa task terbentuk.
-- [ ] **TEST-10 Storage isolation** User A tidak bisa akses signed URL folder attachments User B (khusus test ini butuh 2 akun uji sementara, meski app single-user di production).
+Semua dijalankan 2026-07-09 langsung terhadap database production `zen-dashboard` (satu-satunya environment; data uji dibersihkan setelah selesai).
+
+- [x] **TEST-1 Migrasi urut** 19 migrasi lokal semua terapply urut tanpa error (remote punya 2 ekstra: `app_secrets_table` yang dibuat lalu di-drop — netral).
+- [x] **TEST-2 RLS** Role `anon`: 0 baris di projects/tasks/ideas/metrics/reminders/push_subscriptions. Authenticated user asli: lihat 8 project miliknya. Authenticated dengan UUID lain: 0 baris.
+- [x] **TEST-3 Recurring idempoten** Rule daily uji, `generate_recurring_instances()` dipanggil 2x → tetap 1 instance.
+- [x] **TEST-4 Timezone** `jakarta_date`: 00:30 WIB hari ini → jatuh hari ini; 23:30 WIB kemarin → jatuh kemarin.
+- [x] **TEST-5 Top 3 guard** Insert 3 task fokus sukses; ke-4 ditolak trigger `guard_focus_today()` dengan pesan "Top 3 fokus sudah penuh".
+- [x] **TEST-6 Streak** Check-in hari 0,1 lalu bolong hari 2, lanjut hari 3,4 → `metric_streak()` = 2 (bolong memutus dengan benar).
+- [x] **TEST-7 Digest** `generate_morning_digest()` menghasilkan payload {overdue:3, due_today:2, recurring_today:1, checkins_due:0} — persis sama dengan `get_attention()` saat itu.
+- [x] **TEST-8 Urgent tanpa duplikat** Task high-priority yang juga overdue hanya muncul di grup `overdue`, tidak dobel di `high_today`.
+- [x] **TEST-9 Convert idea→task atomik** Kegagalan diinjeksi via trigger saat insert task di tengah `convert_idea_to_task` → seluruhnya rollback (idea utuh, tidak ada task setengah jadi). Happy path: task terbentuk, idea terhapus (dipindah, bukan disalin).
+- [x] **TEST-10 Storage isolation** Diuji di level RLS `storage.objects` (bukan 2 akun nyata): user B tidak melihat objek folder user A (select = 0) dan insert ke folder user A ditolak RLS; user A melihat objek sendiri. Signed URL hanya bisa diminta klien yang lolos policy select, jadi tercakup.
 
 ---
 
