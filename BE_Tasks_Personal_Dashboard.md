@@ -43,7 +43,7 @@ Belum dikerjakan:
 - [x] **PUSH-4 Edge Function send-push** (`supabase/functions/send-push`) — pakai `npm:web-push`, kirim ke semua subscription milik user pemilik reminder, hapus subscription yang sudah invalid (404/410). Sudah ter-deploy (`verify_jwt=false`, diproteksi header `x-cron-secret`).
 - [ ] **PUSH-5 Isi secret Edge Function** — **BUTUH AKSI USER**: buka Supabase Dashboard → Project → Edge Functions → `send-push` → Secrets, isi `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET` (nilai sudah digenerate, ada di riwayat chat — tidak diulang di sini demi keamanan). Sengaja tidak diisi otomatis oleh asisten supaya secret tidak lewat log tool-call.
 - [ ] **PUSH-6 Jadwalkan pg_cron → send-push** Setelah PUSH-5 selesai, jalankan `select cron.schedule('send_push_every_5min', '*/5 * * * *', $$select net.http_post(url:='<function-url>', headers:=jsonb_build_object('x-cron-secret','<CRON_SECRET>'))$$);` — juga butuh user (supaya secret tidak lewat asisten).
-- [ ] **PUSH-7 FE subscribe flow** Tombol "Aktifkan push" di Settings: request Notification permission, `pushManager.subscribe()` pakai `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, simpan subscription ke `push_subscriptions`. **Belum dikerjakan.**
+- [x] **PUSH-7 FE subscribe flow** — selesai di sisi FE (lihat FE_Tasks Sprint N PUSH-FE-1/2): tombol Aktifkan/Nonaktifkan di Settings, status berdasarkan subscription aktual, upsert/delete ke `push_subscriptions`. End-to-end baru jalan setelah PUSH-5/6 (aksi user).
 
 ## Sprint N — Google Calendar sync (diminta user, belum mulai)
 
