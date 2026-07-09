@@ -12,12 +12,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/layout/sidebar";
+import { CaptureSheet } from "@/components/capture/capture-sheet";
 import { useAppState } from "@/lib/app-state";
 
 export function Topbar() {
   const { dataset, addTask, pushToast, dismissReminder, focusMode, toggleFocusMode } = useAppState();
   const [capture, setCapture] = useState("");
   const [navOpen, setNavOpen] = useState(false);
+  const [captureOpen, setCaptureOpen] = useState(false);
   const router = useRouter();
 
   const submitCapture = () => {
@@ -56,6 +58,16 @@ export function Topbar() {
         className="min-w-0 flex-1 bg-background sm:max-w-[420px]"
       />
       <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+        <button
+          className="flex h-9 w-9 flex-none items-center justify-center rounded-md border border-border bg-background text-lg leading-none hover:bg-muted/40"
+          onClick={() => setCaptureOpen(true)}
+          aria-label="Capture Task atau Idea"
+          title="Capture Task / Idea"
+        >
+          +
+        </button>
+        <CaptureSheet open={captureOpen} onOpenChange={setCaptureOpen} />
+
         <DropdownMenu>
           <DropdownMenuTrigger
             className="relative flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-sm hover:bg-muted/40"

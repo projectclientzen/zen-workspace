@@ -152,7 +152,7 @@ export interface WeeklyReview {
 
 - [x] **PAGE-D1 Capture cepat** Input satu baris di top bar, Enter membuat task Inbox tanpa project. Cek: cepat, tanpa form penuh.
 - [x] **PAGE-D2 Inbox list + triage** Daftar item tanpa project, aksi tetapkan project/due/priority. Cek: item pindah keluar Inbox.
-- [ ] **PAGE-D3 Capture sheet mobile (Task/Idea)** Bottom sheet dengan toggle Task ⟷ Idea, field lengkap (judul, catatan/body, link, gambar, project, priority + tanggal/jam khusus Task). Cek: submit Task masuk Inbox/task list, submit Idea masuk Ideation.
+- [x] **PAGE-D3 Capture sheet mobile (Task/Idea)** Bottom sheet (`CaptureSheet`, dibuka dari tombol "+" di topbar) dengan toggle Task ⟷ Idea, field lengkap (judul, catatan/body, link, gambar, project, priority + tanggal/jam khusus Task). Submit Task tanpa project → Inbox, dengan project → task list; submit Idea → Ideation.
 
 ---
 
@@ -218,9 +218,8 @@ Fitur baru: parkir ide mentah terpisah dari task. Ide punya riwayat versi manual
 
 Semua halaman render dengan mock, Focus Mode dan Top 3 jalan, tiga state ada, capture cepat berfungsi, panel Urgent dan Ideation jalan dengan mock, tidak ada yang bergantung backend. Setelah ini, mock diganti query dan RPC yang return-nya sudah cocok dengan Data Contract, tanpa ubah komponen.
 
-**Status: gerbang tercapai** di `apps/web` (repo `zen-workspace`) — semua sprint A-K sudah diimplementasi dan diverifikasi (type-check + build + smoke test tiap route), kecuali satu gap yang disengaja ditunda:
+**Status: gerbang tercapai penuh** di `apps/web` (repo `zen-workspace`) — semua sprint A-K sudah diimplementasi dan diverifikasi (type-check + build + smoke test tiap route). PAGE-D3 (capture sheet Task⟷Idea) kini juga sudah ada. Catatan tersisa:
 
-- **PAGE-D3 belum ada** sebagai bottom sheet mobile terpadu dengan toggle Task⟷Idea. Yang sudah ada sebagai penggantinya: capture cepat teks di top bar (task ke Inbox), form Task lengkap via dialog (`TaskFormDialog`), dan form Idea lengkap di halaman Ideation — jadi fungsinya tercakup, hanya belum digabung jadi satu sheet mobile sesuai desain asli.
 - STATE-3 (mobile pass) sudah melalui responsive pass menyeluruh (sidebar jadi drawer di <768px, grid menyusut ke 1 kolom, topbar menyesuaikan) tapi belum diuji di perangkat fisik — hanya via resize browser.
 
 ## Catatan tidak wajib v1 (superseded — lihat Sprint L/M/N/O di bawah)
@@ -239,7 +238,7 @@ Push notification browser sungguhan tadinya ditunda ke v1.1 — **sekarang diker
 - [x] **TB-FE-1 TimeBlockScheduler** komponen di Task Detail Drawer — jadwalkan blok waktu (tanggal, jam, durasi) untuk task yang sedang dibuka, list blok tersimpan + hapus.
 - [x] **TB-FE-2 Tampilan Calendar** blok waktu muncul sebagai dot kuning per tanggal + daftar di panel detail hari, terpisah visual dari task ber-`due_at`.
 - [x] **POM-FE-1 PomodoroTimer** komponen di Task Detail Drawer — countdown fokus (25/50 menit) dan istirahat (5/15 menit), auto-log sesi selesai natural ke `pomodoro_sessions`, auto-switch mode fokus↔istirahat.
-- [ ] **POM-FE-2 Ringkasan menit fokus per task** (pakai RPC `task_focus_minutes`) belum ditampilkan di mana pun (list/drawer) — baru datanya saja yang tercatat.
+- [x] **POM-FE-2 Ringkasan menit fokus per task** — badge "⏱ N menit fokus" di Task Detail Drawer (`FocusMinutesBadge`), dihitung dari `dataset.pomodoroSessions` (sesi focus yang completed); tampil hanya jika > 0.
 
 ## Sprint N — Push Notification asli (v1.1 → dikerjakan sekarang)
 
