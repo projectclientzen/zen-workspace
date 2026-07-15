@@ -103,7 +103,14 @@ export default function WeeklyReviewPage() {
         <Button variant="outline" size="sm" onClick={() => setWeekOffset((w) => w + 1)}>
           Minggu depan ›
         </Button>
-        <Select value={scope} onValueChange={(v) => setScope(v ?? ALL)}>
+        <Select
+          value={scope}
+          onValueChange={(v) => setScope(v ?? ALL)}
+          items={[
+            { value: ALL, label: "Gabungan semua project" },
+            ...dataset.projects.map((p) => ({ value: p.id, label: p.name })),
+          ]}
+        >
           <SelectTrigger className="ml-auto w-[180px]">
             <SelectValue />
           </SelectTrigger>

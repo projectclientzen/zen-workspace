@@ -102,7 +102,14 @@ export default function IdeationPage() {
             placeholder="Tulis detailnya — bebas, mentah tidak apa-apa…"
             rows={5}
           />
-          <Select value={projectId} onValueChange={(v) => setProjectId(v ?? NONE)}>
+          <Select
+            value={projectId}
+            onValueChange={(v) => setProjectId(v ?? NONE)}
+            items={[
+              { value: NONE, label: "Belum di-assign" },
+              ...dataset.projects.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -272,6 +279,10 @@ export default function IdeationPage() {
             <Select
               value={openIdea.project_id ?? NONE}
               onValueChange={(v) => updateIdea(openIdea.id, { project_id: v === NONE ? null : v })}
+              items={[
+                { value: NONE, label: "Belum di-assign" },
+                ...dataset.projects.map((p) => ({ value: p.id, label: p.name })),
+              ]}
             >
               <SelectTrigger>
                 <SelectValue />

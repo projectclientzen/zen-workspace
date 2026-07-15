@@ -182,7 +182,14 @@ export function CaptureSheet({
           <div className={mode === "task" ? "grid grid-cols-2 gap-3" : "flex flex-col gap-1.5"}>
             <div className="flex flex-col gap-1.5">
               <Label>Project</Label>
-              <Select value={projectId} onValueChange={(v) => setProjectId(v ?? NONE)}>
+              <Select
+                value={projectId}
+                onValueChange={(v) => setProjectId(v ?? NONE)}
+                items={[
+                  { value: NONE, label: mode === "task" ? "Inbox (tanpa project)" : "Belum di-assign" },
+                  ...dataset.projects.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -201,7 +208,15 @@ export function CaptureSheet({
             {mode === "task" && (
               <div className="flex flex-col gap-1.5">
                 <Label>Priority</Label>
-                <Select value={priority} onValueChange={(v) => setPriority((v ?? "medium") as Priority)}>
+                <Select
+                  value={priority}
+                  onValueChange={(v) => setPriority((v ?? "medium") as Priority)}
+                  items={[
+                    { value: "low", label: "Low" },
+                    { value: "medium", label: "Medium" },
+                    { value: "high", label: "High" },
+                  ]}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

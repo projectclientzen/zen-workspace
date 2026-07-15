@@ -107,7 +107,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       {tab === "list" && (
         <>
           <div className="mt-4.5 flex gap-2">
-            <Select value={fStatus} onValueChange={(v) => setFStatus((v ?? "all") as typeof fStatus)}>
+            <Select
+              value={fStatus}
+              onValueChange={(v) => setFStatus((v ?? "all") as typeof fStatus)}
+              items={[
+                { value: "all", label: "Status: Semua" },
+                { value: "todo", label: "Todo" },
+                { value: "doing", label: "Doing" },
+                { value: "done", label: "Done" },
+              ]}
+            >
               <SelectTrigger className="h-8 w-[140px] text-[12px]">
                 <SelectValue />
               </SelectTrigger>
@@ -118,7 +127,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <SelectItem value="done">Done</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={fPrio} onValueChange={(v) => setFPrio((v ?? "all") as typeof fPrio)}>
+            <Select
+              value={fPrio}
+              onValueChange={(v) => setFPrio((v ?? "all") as typeof fPrio)}
+              items={[
+                { value: "all", label: "Prioritas: Semua" },
+                { value: "high", label: "High" },
+                { value: "medium", label: "Medium" },
+                { value: "low", label: "Low" },
+              ]}
+            >
               <SelectTrigger className="h-8 w-[140px] text-[12px]">
                 <SelectValue />
               </SelectTrigger>

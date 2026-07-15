@@ -150,7 +150,14 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-2.5">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title template" />
           <div className="grid grid-cols-3 gap-2">
-            <Select value={projectId} onValueChange={(v) => setProjectId(v ?? NONE)}>
+            <Select
+              value={projectId}
+              onValueChange={(v) => setProjectId(v ?? NONE)}
+              items={[
+                { value: NONE, label: "Tanpa project" },
+                ...dataset.projects.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -163,7 +170,15 @@ export default function SettingsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={frequency} onValueChange={(v) => setFrequency((v ?? "daily") as RecurringFrequency)}>
+            <Select
+              value={frequency}
+              onValueChange={(v) => setFrequency((v ?? "daily") as RecurringFrequency)}
+              items={[
+                { value: "daily", label: "Harian" },
+                { value: "weekly", label: "Mingguan" },
+                { value: "monthly", label: "Bulanan" },
+              ]}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

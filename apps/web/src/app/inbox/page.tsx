@@ -61,6 +61,10 @@ export default function InboxPage() {
                   source: project_id ? "manual" : "inbox",
                 });
               }}
+              items={[
+                { value: "__none__", label: "Assign project" },
+                ...dataset.projects.map((p) => ({ value: p.id, label: p.name })),
+              ]}
             >
               <SelectTrigger className="h-8 w-[150px] text-[11.5px]">
                 <SelectValue placeholder="Assign project" />
@@ -78,6 +82,11 @@ export default function InboxPage() {
             <Select
               value={t.priority}
               onValueChange={(v) => updateTask(t.id, { priority: (v ?? "medium") as Priority })}
+              items={[
+                { value: "low", label: "low" },
+                { value: "medium", label: "med" },
+                { value: "high", label: "high" },
+              ]}
             >
               <SelectTrigger className="h-8 w-[90px] text-[11.5px]">
                 <SelectValue />

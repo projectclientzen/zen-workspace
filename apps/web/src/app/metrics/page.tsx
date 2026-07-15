@@ -67,7 +67,14 @@ export default function MetricsPage() {
 
       <Card className="mb-5 flex-row flex-wrap items-end gap-2.5 p-4">
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama metrik" className="w-[180px]" />
-        <Select value={projectId} onValueChange={(v) => setProjectId(v ?? NONE)}>
+        <Select
+          value={projectId}
+          onValueChange={(v) => setProjectId(v ?? NONE)}
+          items={[
+            { value: NONE, label: "Umum (tanpa project)" },
+            ...dataset.projects.map((p) => ({ value: p.id, label: p.name })),
+          ]}
+        >
           <SelectTrigger className="w-[150px]">
             <SelectValue />
           </SelectTrigger>
@@ -80,7 +87,14 @@ export default function MetricsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={type} onValueChange={(v) => setType((v ?? "boolean") as MetricType)}>
+        <Select
+          value={type}
+          onValueChange={(v) => setType((v ?? "boolean") as MetricType)}
+          items={[
+            { value: "boolean", label: "Ya/Tidak" },
+            { value: "number", label: "Angka" },
+          ]}
+        >
           <SelectTrigger className="w-[120px]">
             <SelectValue />
           </SelectTrigger>
@@ -92,7 +106,14 @@ export default function MetricsPage() {
         {type === "number" && (
           <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="unit (menit, kg…)" className="w-[120px]" />
         )}
-        <Select value={scheduleType} onValueChange={(v) => setScheduleType((v ?? "daily") as MetricScheduleType)}>
+        <Select
+          value={scheduleType}
+          onValueChange={(v) => setScheduleType((v ?? "daily") as MetricScheduleType)}
+          items={[
+            { value: "daily", label: "Harian" },
+            { value: "specific_days", label: "Hari tertentu" },
+          ]}
+        >
           <SelectTrigger className="w-[140px]">
             <SelectValue />
           </SelectTrigger>

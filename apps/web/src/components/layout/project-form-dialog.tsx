@@ -61,7 +61,16 @@ export function ProjectFormDialog({ open, onOpenChange }: { open: boolean; onOpe
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Tipe</Label>
-            <Select value={type} onValueChange={(v) => setType((v ?? "brand") as ProjectType)}>
+            <Select
+              value={type}
+              onValueChange={(v) => setType((v ?? "brand") as ProjectType)}
+              items={[
+                { value: "brand", label: "Brand" },
+                { value: "content", label: "Content" },
+                { value: "learning", label: "Learning" },
+                { value: "personal", label: "Personal" },
+              ]}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

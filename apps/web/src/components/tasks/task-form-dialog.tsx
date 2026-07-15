@@ -205,7 +205,14 @@ export function TaskFormDialog() {
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label>Project</Label>
-              <Select value={projectId} onValueChange={(v) => setValue("project_id", v ?? NONE)}>
+              <Select
+                value={projectId}
+                onValueChange={(v) => setValue("project_id", v ?? NONE)}
+                items={[
+                  { value: NONE, label: "Inbox (tanpa project)" },
+                  ...dataset.projects.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -221,7 +228,15 @@ export function TaskFormDialog() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Priority</Label>
-              <Select value={watch("priority")} onValueChange={(v) => setValue("priority", v as FormValues["priority"])}>
+              <Select
+                value={watch("priority")}
+                onValueChange={(v) => setValue("priority", v as FormValues["priority"])}
+                items={[
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                ]}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -250,6 +265,12 @@ export function TaskFormDialog() {
             <Select
               value={watch("recurring_rule_id")}
               onValueChange={(v) => setValue("recurring_rule_id", v ?? NONE)}
+              items={[
+                { value: NONE, label: "Bukan recurring" },
+                ...dataset.recurringRules
+                  .filter((r) => r.is_active)
+                  .map((r) => ({ value: r.id, label: r.title_template })),
+              ]}
             >
               <SelectTrigger>
                 <SelectValue />
