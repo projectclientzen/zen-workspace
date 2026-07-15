@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -41,7 +42,7 @@ export default function InboxPage() {
                 pushToast("Selesai ✓");
               }}
             >
-              ✓
+              <Check className="size-3" />
             </button>
             <button
               className="min-w-0 flex-1 truncate text-left text-[13.5px] font-medium"
@@ -114,7 +115,7 @@ export default function InboxPage() {
               className="flex-none text-[12px] text-faint hover:text-destructive"
               onClick={() => softDeleteTask(t.id)}
             >
-              ✕
+              <X className="size-3" />
             </button>
           </div>
         ))}

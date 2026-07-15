@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Bell, Crosshair, Menu, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +41,7 @@ export function Topbar() {
         onClick={() => setNavOpen(true)}
         aria-label="Buka menu"
       >
-        ☰
+        <Menu className="size-4" />
       </button>
       <Sheet open={navOpen} onOpenChange={setNavOpen}>
         <SheetContent side="left" className="w-[240px] p-0 sm:max-w-[240px]">
@@ -64,7 +65,7 @@ export function Topbar() {
           aria-label="Capture Task atau Idea"
           title="Capture Task / Idea"
         >
-          +
+          <Plus className="size-4" />
         </button>
         <CaptureSheet open={captureOpen} onOpenChange={setCaptureOpen} />
 
@@ -72,7 +73,7 @@ export function Topbar() {
           <DropdownMenuTrigger
             className="relative flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-sm hover:bg-muted/40"
           >
-            🔔
+            <Bell className="size-4" />
             {pending.length > 0 && (
               <Badge className="absolute -top-1.5 -right-1.5 h-4 min-w-4 justify-center rounded-full px-1 text-[9px]">
                 {pending.length}
@@ -113,7 +114,8 @@ export function Topbar() {
           onClick={toggleFocusMode}
           className="gap-1.5"
         >
-          ◎ <span className="hidden sm:inline">{focusMode ? "Focus Mode: ON" : "Focus Mode"}</span>
+          <Crosshair className="size-3.5" />
+          <span className="hidden sm:inline">{focusMode ? "Focus Mode: ON" : "Focus Mode"}</span>
         </Button>
       </div>
     </div>

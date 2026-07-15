@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -187,7 +188,7 @@ export default function IdeationPage() {
                         deleteIdea(i.id);
                       }}
                     >
-                      ✕
+                      <X className="size-3" />
                     </button>
                   </div>
                   <AttachmentImage
@@ -318,7 +319,7 @@ export default function IdeationPage() {
                   setOpenId(null);
                 }}
               >
-                ✕
+                <X className="size-3.5" />
               </Button>
             </div>
 

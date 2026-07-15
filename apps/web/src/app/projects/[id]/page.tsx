@@ -1,6 +1,8 @@
 "use client";
 
 import { use, useState } from "react";
+import { Check, Star } from "lucide-react";
+import { RecurringGlyph } from "@/components/common/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -64,10 +66,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           });
         }}
       >
-        ✓
+        <Check className="size-3" />
       </button>
       <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">
-        {t.source === "recurring" ? "↻ " : ""}
+        {t.source === "recurring" && <RecurringGlyph className="mr-1" />}
         {t.title}
       </span>
       <span className="flex-none rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -186,7 +188,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     className="cursor-grab rounded-lg border border-border bg-card p-2.5 shadow-sm"
                   >
                     <div className="text-[12.5px] font-semibold leading-snug">
-                      {t.source === "recurring" ? "↻ " : ""}
+                      {t.source === "recurring" && <RecurringGlyph className="mr-1" />}
                       {t.title}
                     </div>
                     <div className="mt-2 flex items-center gap-1.5">
@@ -200,7 +202,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       >
                         {fmtDue(t.due_at)}
                       </span>
-                      {t.is_focus_today && <span className="text-[11px] text-amber">★</span>}
+                      {t.is_focus_today && <Star className="size-3 text-amber" fill="currentColor" />}
                     </div>
                   </div>
                 ))}

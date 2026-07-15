@@ -1,6 +1,8 @@
 "use client";
 
+import { ArrowRight, ExternalLink, Star, Timer } from "lucide-react";
 import { AttachmentImage } from "@/components/common/attachment-image";
+import { RecurringGlyph } from "@/components/common/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +35,7 @@ function FocusMinutesBadge({ taskId, sessions }: { taskId: string; sessions: Pom
   if (totalMins === 0) return null;
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[12px]">
-      <span className="text-primary">⏱</span>
+      <Timer className="size-3.5 text-primary" />
       <span className="font-semibold text-foreground">{totalMins} menit fokus</span>
       <span className="text-muted-foreground">total dari Pomodoro</span>
     </div>
@@ -90,7 +92,7 @@ export function TaskDetailDrawer() {
                 </span>
               </div>
               <SheetTitle className="font-serif text-xl leading-snug font-medium">
-                {task.source === "recurring" ? "↻ " : ""}
+                {task.source === "recurring" && <RecurringGlyph className="mr-1 size-4" />}
                 {task.title}
               </SheetTitle>
             </SheetHeader>
@@ -149,7 +151,8 @@ export function TaskDetailDrawer() {
                   rel="noreferrer"
                   className="text-[12px] font-semibold text-primary underline"
                 >
-                  ↗ {task.link}
+                  <ExternalLink className="mr-1 inline size-3 align-[-1px]" />
+                  {task.link}
                 </a>
               )}
 
@@ -159,11 +162,12 @@ export function TaskDetailDrawer() {
                   className="flex-1 gap-1.5 border-amber text-amber hover:text-amber"
                   onClick={() => toggleFocusToday(task.id)}
                 >
-                  ★ {task.is_focus_today ? "Lepas Top 3" : "Tandai Top 3"}
+                  <Star className="size-3.5" fill={task.is_focus_today ? "currentColor" : "none"} />
+                  {task.is_focus_today ? "Lepas Top 3" : "Tandai Top 3"}
                 </Button>
                 {task.due_at && (
-                  <Button variant="outline" className="flex-1" onClick={() => postponeToTomorrow(task.id)}>
-                    → Besok
+                  <Button variant="outline" className="flex-1 gap-1.5" onClick={() => postponeToTomorrow(task.id)}>
+                    <ArrowRight className="size-3.5" /> Besok
                   </Button>
                 )}
               </div>

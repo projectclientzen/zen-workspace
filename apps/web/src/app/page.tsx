@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState, useMemo } from "react";
+import { Check, Star } from "lucide-react";
+import { RecurringGlyph } from "@/components/common/icons";
 import { Bar, BarChart, ResponsiveContainer, Tooltip } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -293,7 +295,7 @@ export default function OverviewPage() {
                   className="ml-auto flex h-6 w-6 items-center justify-center rounded-full border-[1.5px] border-faint text-xs text-transparent hover:border-primary hover:text-primary"
                   onClick={(e) => { e.stopPropagation(); setTaskStatus(t.id, "done"); pushToast("Selesai ✓"); }}
                 >
-                  ✓
+                  <Check className="size-3.5" />
                 </button>
               </div>
             </Card>
@@ -338,16 +340,16 @@ export default function OverviewPage() {
                   <button
                     className="flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full border-[1.5px] border-faint text-[11px] text-transparent hover:border-primary hover:text-primary"
                     onClick={(e) => { e.stopPropagation(); setTaskStatus(t.id, "done"); pushToast("Selesai ✓"); }}
-                  >✓</button>
-                  <span className="text-[13.5px] font-medium">{t.source === "recurring" ? "↻ " : ""}{t.title}</span>
+                  ><Check className="size-3" /></button>
+                  <span className="text-[13.5px] font-medium">{t.source === "recurring" && <RecurringGlyph className="mr-1" />}{t.title}</span>
                   <span className="ml-auto flex-none text-[10.5px] font-semibold text-muted-foreground">{t.project_name ?? "Inbox"}</span>
                   <span className={`w-[76px] flex-none text-right text-[10.5px] font-semibold ${t.is_overdue ? "text-destructive" : "text-muted-foreground"}`}>
                     {fmtDue(t.due_at)}
                   </span>
                   <button
-                    className={`flex-none text-[14px] ${t.is_focus_today ? "text-amber" : "text-faint"}`}
+                    className={`flex-none ${t.is_focus_today ? "text-amber" : "text-faint"}`}
                     onClick={(e) => { e.stopPropagation(); toggleFocusToday(t.id); }}
-                  >★</button>
+                  ><Star className="size-3.5" fill={t.is_focus_today ? "currentColor" : "none"} /></button>
                 </div>
               ))}
             </Card>
@@ -449,7 +451,7 @@ export default function OverviewPage() {
                     </div>
                   </div>
                   {doneToday ? (
-                    <span className="text-[13px] font-bold text-primary">✓</span>
+                    <span className="text-primary"><Check className="size-4" /></span>
                   ) : due ? (
                     <button
                       className="rounded-md border border-primary px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/10"

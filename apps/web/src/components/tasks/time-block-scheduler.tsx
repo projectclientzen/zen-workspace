@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppState } from "@/lib/app-state";
@@ -58,8 +59,9 @@ export function TimeBlockScheduler({ taskId }: { taskId: string }) {
               <button
                 className="ml-auto text-[11px] text-faint hover:text-destructive"
                 onClick={() => deleteTimeBlock(b.id)}
+                aria-label="Hapus blok"
               >
-                ✕
+                <X className="size-3" />
               </button>
             </div>
           ))}

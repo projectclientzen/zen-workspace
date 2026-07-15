@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { TriangleAlert } from "lucide-react";
 import { ProjectFormDialog } from "@/components/layout/project-form-dialog";
 import { useAppState } from "@/lib/app-state";
 import { getUrgentGroups } from "@/lib/selectors";
@@ -11,12 +12,14 @@ import { cn } from "@/lib/utils";
 function NavItem({
   href,
   label,
+  icon,
   active,
   badge,
   onNavigate,
 }: {
   href: string;
   label: string;
+  icon?: React.ReactNode;
   active: boolean;
   badge?: number;
   onNavigate?: () => void;
@@ -32,6 +35,7 @@ function NavItem({
           : "text-sidebar-foreground hover:bg-white/5",
       )}
     >
+      {icon}
       <span className="truncate">{label}</span>
       {!!badge && (
         <span className="ml-auto rounded-full bg-white/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-sidebar-primary">
@@ -66,7 +70,8 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           <NavItem href="/" label="Overview" active={pathname === "/"} onNavigate={onNavigate} />
           <NavItem
             href="/urgent"
-            label="⚠ Urgent"
+            label="Urgent"
+            icon={<TriangleAlert className="size-3.5 flex-none text-destructive" />}
             active={pathname === "/urgent"}
             badge={urgentCount}
             onNavigate={onNavigate}

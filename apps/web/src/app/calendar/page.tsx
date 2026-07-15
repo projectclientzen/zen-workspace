@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { RecurringGlyph } from "@/components/common/icons";
 import { useAppState } from "@/lib/app-state";
 
 const DAY_NAMES = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
@@ -156,7 +157,7 @@ export default function CalendarPage() {
               onClick={() => openTaskDetail(t.id)}
             >
               <div className="text-[12.5px] font-medium">
-                {t.source === "recurring" ? "↻ " : ""}
+                {t.source === "recurring" && <RecurringGlyph className="mr-1" />}
                 {t.title}
               </div>
               <div className="text-[10.5px] text-muted-foreground">{t.project_name ?? "Inbox"}</div>

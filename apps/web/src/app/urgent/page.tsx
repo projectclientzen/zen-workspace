@@ -1,6 +1,8 @@
 "use client";
 
+import { ArrowRight, Star, TriangleAlert } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { RecurringGlyph } from "@/components/common/icons";
 import { useAppState } from "@/lib/app-state";
 import { getUrgentGroups } from "@/lib/selectors";
 
@@ -25,7 +27,9 @@ export default function UrgentPage() {
   return (
     <div className="mx-auto max-w-[860px] px-4 py-6 sm:px-7">
       <div className="flex items-baseline gap-3">
-        <span className="font-serif text-2xl font-medium">⚠ Urgent</span>
+        <span className="flex items-center gap-2 font-serif text-2xl font-medium">
+          <TriangleAlert className="size-5 text-destructive" /> Urgent
+        </span>
         <span className="font-serif text-xl font-medium text-destructive">{total}</span>
       </div>
       <p className="mb-4.5 mt-1 max-w-[540px] text-[12.5px] text-muted-foreground">
@@ -58,7 +62,7 @@ export default function UrgentPage() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13.5px] font-medium">
-                      {t.source === "recurring" ? "↻ " : ""}
+                      {t.source === "recurring" && <RecurringGlyph className="mr-1" />}
                       {t.title}
                     </div>
                     <div className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">
@@ -78,7 +82,11 @@ export default function UrgentPage() {
                       else toggleFocusToday(t.id);
                     }}
                   >
-                    {g.kind === "overdue" ? "→ besok" : "★"}
+                    {g.kind === "overdue" ? (
+                      <span className="flex items-center gap-1"><ArrowRight className="size-3" /> besok</span>
+                    ) : (
+                      <Star className="size-3.5" />
+                    )}
                   </button>
                 </div>
               ))}

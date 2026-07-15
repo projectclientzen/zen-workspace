@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ProjectFormDialog } from "@/components/layout/project-form-dialog";
+import { RecurringGlyph } from "@/components/common/icons";
 import { useAppState } from "@/lib/app-state";
 import { usePrefs, type Lang, type Theme } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -286,7 +287,7 @@ export default function SettingsPage() {
         <div className="mt-1 flex flex-col gap-1">
           {dataset.recurringRules.map((r) => (
             <div key={r.id} className="flex items-center gap-2.5 border-t border-border py-2.5 first:border-t-0">
-              <span className="text-[13px] text-primary">↻</span>
+              <RecurringGlyph className="size-3.5" />
               <div className="min-w-0 flex-1">
                 <div className="text-[12.5px] font-semibold">{r.title_template}</div>
                 <div className="text-[10.5px] text-muted-foreground">

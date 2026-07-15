@@ -144,4 +144,19 @@
   html {
     @apply font-sans;
   }
+  /* Tailwind v4 mengubah default tombol jadi cursor:default — kembalikan affordance klik */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  /* Hormati preferensi reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
