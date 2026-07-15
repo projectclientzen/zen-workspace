@@ -14,8 +14,38 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ProjectFormDialog } from "@/components/layout/project-form-dialog";
 import { useAppState } from "@/lib/app-state";
+import { usePrefs, type Lang, type Theme } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import type { RecurringFrequency } from "@/lib/types";
+
+function SegmentedToggle<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex overflow-hidden rounded-lg border border-border">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={`px-4 py-1.5 text-[12.5px] font-semibold transition-colors ${
+            value === o.value
+              ? "bg-primary text-primary-foreground"
+              : "bg-background text-muted-foreground hover:bg-muted/40"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const NONE = "__none__";
 const WEEKDAY_LABEL = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
@@ -115,6 +145,7 @@ function usePushNotification() {
 
 export default function SettingsPage() {
   const { dataset, addRule, toggleRule, updateProject, pushToast, signOut } = useAppState();
+  const { theme, lang, setTheme, setLang, t } = usePrefs();
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const push = usePushNotification();
 
@@ -136,25 +167,51 @@ export default function SettingsPage() {
       day_of_month: frequency === "monthly" ? Number(dayOfMonth) : null,
       time_of_day: time,
     });
-    pushToast("Aturan recurring tersimpan.");
+    pushToast(t("rule_saved"));
     setTitle("");
     setWeekdays([]);
   };
 
   return (
     <div className="mx-auto max-w-[720px] px-4 py-6 sm:px-7">
-      <div className="font-serif text-2xl font-medium">Settings</div>
+      <div className="font-serif text-2xl font-medium">{t("settings")}</div>
 
-      <Card className="mt-5 gap-3 p-4">
-        <div className="text-[13px] font-bold">Recurring rules</div>
+      <Card className="mt-5 gap-4 p-4">
+        <div className="text-[13px] font-bold">{t("appearance")}</div>
+        <div className="flex items-center gap-6">
+          <span className="w-16 text-[12.5px] text-muted-foreground">{t("theme")}</span>
+          <SegmentedToggle<Theme>
+            value={theme}
+            onChange={setTheme}
+            options={[
+              { value: "light", label: t("light") },
+              { value: "dark", label: t("dark") },
+            ]}
+          />
+        </div>
+        <div className="flex items-center gap-6">
+          <span className="w-16 text-[12.5px] text-muted-foreground">{t("language")}</span>
+          <SegmentedToggle<Lang>
+            value={lang}
+            onChange={setLang}
+            options={[
+              { value: "id", label: "Indonesia" },
+              { value: "en", label: "English" },
+            ]}
+          />
+        </div>
+      </Card>
+
+      <Card className="mt-3.5 gap-3 p-4">
+        <div className="text-[13px] font-bold">{t("recurring_rules")}</div>
         <div className="flex flex-col gap-2.5">
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title template" />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("title_template")} />
           <div className="grid grid-cols-3 gap-2">
             <Select
               value={projectId}
               onValueChange={(v) => setProjectId(v ?? NONE)}
               items={[
-                { value: NONE, label: "Tanpa project" },
+                { value: NONE, label: t("no_project") },
                 ...dataset.projects.map((p) => ({ value: p.id, label: p.name })),
               ]}
             >
@@ -162,7 +219,7 @@ export default function SettingsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Tanpa project</SelectItem>
+                <SelectItem value={NONE}>{t("no_project")}</SelectItem>
                 {dataset.projects.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.name}
@@ -174,18 +231,18 @@ export default function SettingsPage() {
               value={frequency}
               onValueChange={(v) => setFrequency((v ?? "daily") as RecurringFrequency)}
               items={[
-                { value: "daily", label: "Harian" },
-                { value: "weekly", label: "Mingguan" },
-                { value: "monthly", label: "Bulanan" },
+                { value: "daily", label: t("daily") },
+                { value: "weekly", label: t("weekly") },
+                { value: "monthly", label: t("monthly") },
               ]}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">Harian</SelectItem>
-                <SelectItem value="weekly">Mingguan</SelectItem>
-                <SelectItem value="monthly">Bulanan</SelectItem>
+                <SelectItem value="daily">{t("daily")}</SelectItem>
+                <SelectItem value="weekly">{t("weekly")}</SelectItem>
+                <SelectItem value="monthly">{t("monthly")}</SelectItem>
               </SelectContent>
             </Select>
             <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
@@ -219,11 +276,11 @@ export default function SettingsPage() {
               max={31}
               value={dayOfMonth}
               onChange={(e) => setDayOfMonth(e.target.value)}
-              placeholder="Tanggal (1-31)"
+              placeholder={t("day_of_month")}
             />
           )}
 
-          <Button onClick={submit}>+ Tambah aturan</Button>
+          <Button onClick={submit}>{t("add_rule")}</Button>
         </div>
 
         <div className="mt-1 flex flex-col gap-1">
@@ -243,17 +300,20 @@ export default function SettingsPage() {
             </div>
           ))}
           {dataset.recurringRules.length === 0 && (
-            <div className="py-4 text-center text-[12px] text-muted-foreground">Belum ada aturan recurring.</div>
+            <div className="py-4 text-center text-[12px] text-muted-foreground">{t("no_rules")}</div>
           )}
         </div>
       </Card>
 
       <Card className="mt-3.5 gap-2 p-4">
         <div className="flex items-center">
-          <span className="text-[13px] font-bold">Project</span>
-          <Button size="sm" className="ml-auto" onClick={() => setProjectDialogOpen(true)}>
-            + Project baru
-          </Button>
+          <span className="text-[13px] font-bold">{t("manage_projects")}</span>
+          <button
+            className="ml-auto text-[12.5px] font-semibold text-primary hover:underline"
+            onClick={() => setProjectDialogOpen(true)}
+          >
+            {t("add_project")}
+          </button>
         </div>
         <div className="mt-1 flex flex-col gap-1">
           {dataset.projects.map((p) => (
@@ -262,38 +322,41 @@ export default function SettingsPage() {
               <Input
                 value={p.name}
                 onChange={(e) => updateProject(p.id, { name: e.target.value })}
-                className="h-8 flex-1 border-transparent bg-transparent text-[12.5px] font-semibold shadow-none focus-visible:border-border focus-visible:bg-background"
+                className={`h-8 w-auto min-w-0 flex-none field-sizing-content border-transparent bg-transparent text-[13.5px] font-semibold shadow-none focus-visible:border-border focus-visible:bg-background ${
+                  p.is_active ? "" : "text-muted-foreground line-through"
+                }`}
               />
-              <span className="flex-none text-[10.5px] uppercase tracking-wide text-muted-foreground">{p.type}</span>
-              <Switch
-                checked={p.is_active}
-                onCheckedChange={(v) => updateProject(p.id, { is_active: v })}
-                title="Aktif"
-              />
+              <span className="flex-none rounded-md border border-border px-2 py-0.5 text-[10.5px] text-muted-foreground">
+                {p.type}
+              </span>
+              <button
+                className="ml-auto flex-none text-[12px] font-semibold text-muted-foreground underline hover:text-foreground"
+                onClick={() => updateProject(p.id, { is_active: !p.is_active })}
+              >
+                {p.is_active ? t("archive") : t("activate")}
+              </button>
             </div>
           ))}
           {dataset.projects.length === 0 && (
-            <div className="py-4 text-center text-[12px] text-muted-foreground">Belum ada project.</div>
+            <div className="py-4 text-center text-[12px] text-muted-foreground">{t("no_projects")}</div>
           )}
         </div>
       </Card>
 
       <Card className="mt-3.5 gap-3 p-4">
-        <div className="text-[13px] font-bold">Push Notification</div>
-        <div className="text-[11px] leading-relaxed text-muted-foreground">
-          Izinkan notifikasi untuk reminder &amp; digest pagi. Reminder selalu tampil in-app juga.
-        </div>
+        <div className="text-[13px] font-bold">{t("push_title")}</div>
+        <div className="text-[11px] leading-relaxed text-muted-foreground">{t("push_desc")}</div>
         <div className="flex items-center gap-2.5 flex-wrap">
           {(push.status === "idle" || push.status === "denied" || push.status === "granted") && (
             <Button size="sm" onClick={push.enable} disabled={push.loading || push.status === "denied"}>
-              {push.loading ? "Memproses…" : "Aktifkan"}
+              {push.loading ? t("processing") : t("enable")}
             </Button>
           )}
           {push.status === "subscribed" && (
             <>
-              <Button size="sm" variant="outline" onClick={push.sendTest}>Kirim tes</Button>
+              <Button size="sm" variant="outline" onClick={push.sendTest}>{t("send_test")}</Button>
               <Button size="sm" variant="outline" className="text-destructive" onClick={push.disable} disabled={push.loading}>
-                {push.loading ? "Memproses…" : "Nonaktifkan"}
+                {push.loading ? t("processing") : t("disable")}
               </Button>
             </>
           )}
@@ -301,18 +364,18 @@ export default function SettingsPage() {
             push.status === "subscribed" ? "text-primary" :
             push.status === "denied" ? "text-destructive" : "text-muted-foreground"
           }`}>
-            {push.status === "subscribed" ? "Aktif ✓" :
-             push.status === "granted" ? "Izin diberikan — belum berlangganan." :
-             push.status === "denied" ? "Diblokir browser — reminder tetap in-app." :
-             push.status === "unsupported" ? "Browser tidak mendukung." : "Belum aktif"}
+            {push.status === "subscribed" ? t("push_active") :
+             push.status === "granted" ? t("push_granted") :
+             push.status === "denied" ? t("push_denied") :
+             push.status === "unsupported" ? t("push_unsupported") : t("push_inactive")}
           </span>
         </div>
       </Card>
 
       <Card className="mt-3.5 gap-2 p-4">
-        <div className="text-[13px] font-bold">Akun</div>
+        <div className="text-[13px] font-bold">{t("account")}</div>
         <Button variant="outline" className="w-fit text-destructive" onClick={signOut}>
-          Keluar
+          {t("sign_out")}
         </Button>
       </Card>
 

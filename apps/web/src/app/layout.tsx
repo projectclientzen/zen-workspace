@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Newsreader, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { AppStateProvider } from "@/lib/app-state";
+import { PrefsProvider, THEME_INIT_SCRIPT } from "@/lib/prefs";
 import { AppShell } from "@/components/layout/app-shell";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 
@@ -54,10 +55,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <RegisterServiceWorker />
-        <AppStateProvider>
-          <AppShell>{children}</AppShell>
-        </AppStateProvider>
+        <PrefsProvider>
+          <AppStateProvider>
+            <AppShell>{children}</AppShell>
+          </AppStateProvider>
+        </PrefsProvider>
       </body>
     </html>
   );
