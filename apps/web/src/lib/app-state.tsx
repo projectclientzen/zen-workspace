@@ -254,10 +254,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   // (get_pending_reminders() sudah memfilter remind_at <= now, jadi "baru muncul di daftar" = "baru jatuh tempo").
   const toastedReminderIds = useRef<Set<string>>(new Set());
   useEffect(() => {
-    for (const r of dataset.reminders) {
-      if (toastedReminderIds.current.has(r.id)) continue;
-      toastedReminderIds.current.add(r.id);
-      pushToast(r.title);
+    const fresh = dataset.reminders.filter((r) => !toastedReminderIds.current.has(r.id));
+    for (const r of fresh) toastedReminderIds.current.add(r.id);
+    if (fresh.length === 0) return;
+    // Lebih dari 2 reminder sekaligus (mis. saat baru login) → satu toast ringkasan,
+    // detailnya tetap lengkap di notification center (ikon lonceng).
+    if (fresh.length > 2) {
+      pushToast(`${fresh.length} reminder menunggu — cek ikon lonceng.`);
+    } else {
+      for (const r of fresh) pushToast(r.title);
     }
   }, [dataset.reminders, pushToast]);
 
