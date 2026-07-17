@@ -45,15 +45,13 @@ Belum dikerjakan:
 - [ ] **PUSH-6 Jadwalkan pg_cron → send-push** Setelah PUSH-5 selesai, jalankan `select cron.schedule('send_push_every_5min', '*/5 * * * *', $$select net.http_post(url:='<function-url>', headers:=jsonb_build_object('x-cron-secret','<CRON_SECRET>'))$$);` — juga butuh user (supaya secret tidak lewat asisten).
 - [x] **PUSH-7 FE subscribe flow** — selesai di sisi FE (lihat FE_Tasks Sprint N PUSH-FE-1/2): tombol Aktifkan/Nonaktifkan di Settings, status berdasarkan subscription aktual, upsert/delete ke `push_subscriptions`. End-to-end baru jalan setelah PUSH-5/6 (aksi user).
 
-## Sprint N — Google Calendar sync (diminta user, belum mulai)
+## Sprint N — Google Calendar sync (selesai 2026-07-17)
 
 - [x] **GCAL-1 OAuth Client Google** — selesai oleh user: Client ID + Secret terpasang di env Vercel (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`), redirect URI final `https://zen-workspace-psi.vercel.app/api/auth/google/callback`.
 - [x] **GCAL-2 Tabel google_calendar_tokens** — migrasi `google_calendar_sync`: token per user (RLS owner-only, hanya diakses route handler server) + kolom `tasks.google_event_id`.
 - [x] **GCAL-3 Route OAuth** — `/api/auth/google/start` (redirect consent + state cookie) & `/api/auth/google/callback` (verifikasi state, tukar code, simpan token, redirect ke Settings dengan feedback).
 - [x] **GCAL-4 Sinkronisasi task→event** — `/api/gcal/sync-task` dipanggil FE fire-and-forget setelah task ber-due dibuat/diubah: buat/update event (durasi 30 menit, timezone Asia/Jakarta), hapus event saat due dihapus/task done/dropped; mapping di `tasks.google_event_id`.
 - [x] **GCAL-5 Refresh token handling** — `ensureFreshToken()` refresh otomatis dengan margin 60 detik, token baru disimpan kembali.
-
-Belum bisa mulai — menunggu **GCAL-1** dari user.
 
 ---
 
