@@ -53,6 +53,41 @@ const WEEKDAY_LABEL = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 type PushStatus = "idle" | "granted" | "subscribed" | "denied" | "unsupported";
 
+type GcalState =
+  | { phase: "loading" }
+  | { phase: "disconnected" }
+  | { phase: "connected"; email: string | null };
+
+function useGoogleCalendar(pushToast: (msg: string) => void) {
+  const [state, setState] = useState<GcalState>({ phase: "loading" });
+
+  const load = () =>
+    fetch("/api/gcal/status")
+      .then((r) => r.json())
+      .then((d) =>
+        setState(d.connected ? { phase: "connected", email: d.email } : { phase: "disconnected" }),
+      )
+      .catch(() => setState({ phase: "disconnected" }));
+
+  useEffect(() => {
+    load();
+    // Feedback hasil redirect OAuth (?gcal=connected / error:*)
+    const flag = new URLSearchParams(window.location.search).get("gcal");
+    if (flag === "connected") pushToast("Google Calendar terhubung ✓");
+    else if (flag?.startsWith("error:")) pushToast(`Gagal menghubungkan Google (${flag.slice(6)}).`);
+    if (flag) window.history.replaceState(null, "", "/settings");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const disconnect = async () => {
+    await fetch("/api/gcal/disconnect", { method: "POST" }).catch(() => {});
+    pushToast("Google Calendar diputuskan.");
+    load();
+  };
+
+  return { state, disconnect };
+}
+
 function urlBase64ToUint8Array(base64: string) {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
@@ -149,6 +184,7 @@ export default function SettingsPage() {
   const { theme, lang, setTheme, setLang, t } = usePrefs();
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const push = usePushNotification();
+  const gcal = useGoogleCalendar(pushToast);
 
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState(NONE);
@@ -370,6 +406,33 @@ export default function SettingsPage() {
              push.status === "denied" ? t("push_denied") :
              push.status === "unsupported" ? t("push_unsupported") : t("push_inactive")}
           </span>
+        </div>
+      </Card>
+
+      <Card className="mt-3.5 gap-3 p-4">
+        <div className="text-[13px] font-bold">Google Calendar</div>
+        <div className="text-[11px] leading-relaxed text-muted-foreground">
+          Task ber-due otomatis dibuatkan event di kalender utama Google Anda (satu arah).
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {gcal.state.phase === "loading" && (
+            <span className="text-[11px] font-semibold text-muted-foreground">Memeriksa status…</span>
+          )}
+          {gcal.state.phase === "disconnected" && (
+            <Button size="sm" onClick={() => (window.location.href = "/api/auth/google/start")}>
+              Hubungkan Google Calendar
+            </Button>
+          )}
+          {gcal.state.phase === "connected" && (
+            <>
+              <span className="text-[11px] font-semibold text-primary">
+                Terhubung ✓{gcal.state.email ? ` — ${gcal.state.email}` : ""}
+              </span>
+              <Button size="sm" variant="outline" className="text-destructive" onClick={gcal.disconnect}>
+                Putuskan
+              </Button>
+            </>
+          )}
         </div>
       </Card>
 

@@ -47,11 +47,11 @@ Belum dikerjakan:
 
 ## Sprint N — Google Calendar sync (diminta user, belum mulai)
 
-- [ ] **GCAL-1 OAuth Client Google** — **BUTUH AKSI USER**: buat OAuth Client (Web application) di Google Cloud Console, aktifkan Google Calendar API, catat Client ID + Client Secret, tambahkan redirect URI `https://zen-dashboard-app.netlify.app/api/auth/google/callback` (atau path final yang dipakai).
-- [ ] **GCAL-2 Tabel google_calendar_tokens** simpan access_token/refresh_token per user (server-only, tidak boleh ke FE).
-- [ ] **GCAL-3 Route OAuth** (`/api/auth/google/start`, `/api/auth/google/callback`) — mulai & selesaikan consent flow, tukar code jadi token.
-- [ ] **GCAL-4 Sinkronisasi task→event** satu arah dulu sesuai keputusan awal: task ber-`due_at` dibuat/diubah → buat/update event Google Calendar yang bersangkutan (simpan `google_event_id` di tasks atau tabel mapping terpisah).
-- [ ] **GCAL-5 Refresh token handling** perpanjang access token otomatis saat kedaluwarsa.
+- [x] **GCAL-1 OAuth Client Google** — selesai oleh user: Client ID + Secret terpasang di env Vercel (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`), redirect URI final `https://zen-workspace-psi.vercel.app/api/auth/google/callback`.
+- [x] **GCAL-2 Tabel google_calendar_tokens** — migrasi `google_calendar_sync`: token per user (RLS owner-only, hanya diakses route handler server) + kolom `tasks.google_event_id`.
+- [x] **GCAL-3 Route OAuth** — `/api/auth/google/start` (redirect consent + state cookie) & `/api/auth/google/callback` (verifikasi state, tukar code, simpan token, redirect ke Settings dengan feedback).
+- [x] **GCAL-4 Sinkronisasi task→event** — `/api/gcal/sync-task` dipanggil FE fire-and-forget setelah task ber-due dibuat/diubah: buat/update event (durasi 30 menit, timezone Asia/Jakarta), hapus event saat due dihapus/task done/dropped; mapping di `tasks.google_event_id`.
+- [x] **GCAL-5 Refresh token handling** — `ensureFreshToken()` refresh otomatis dengan margin 60 detik, token baru disimpan kembali.
 
 Belum bisa mulai — menunggu **GCAL-1** dari user.
 
@@ -295,7 +295,7 @@ Cek: insert jalan.
 ## Sprint 8 — Kalender internal
 
 - [x] **CAL-1 RPC tasks_in_range(p_start, p_end, p_project)** Task ber-due dalam rentang untuk view kalender. Cek: cocok.
-- [ ] **CAL-2 (v1.1) GCal push satu arah** OAuth Google, simpan token server-only, buat event GCal saat task ber-due dibuat/diubah. Ditunda sampai v1 stabil. Cek: task muncul di Google Calendar.
+- [x] **CAL-2 (v1.1) GCal push satu arah** — selesai via Sprint N GCAL-1 s/d GCAL-5 di atas.
 
 ---
 

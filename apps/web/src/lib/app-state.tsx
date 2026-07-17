@@ -322,18 +322,43 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
 
   // ---------- Tasks ----------
+  // GCAL-4: fire-and-forget sinkronisasi task -> Google Calendar.
+  // Server no-op kalau user belum menghubungkan Google Calendar.
+  const syncTaskToGcal = useCallback((taskId: string) => {
+    fetch("/api/gcal/sync-task", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId }),
+    }).catch(() => {});
+  }, []);
+
   const addTask = useCallback(
     (input: Partial<Task> & { title: string }) => {
-      runMutation(dbAddTask(input), "Gagal membuat task.");
+      runMutation(
+        dbAddTask(input).then((row) => {
+          if (row?.id && input.due_at) syncTaskToGcal(row.id);
+          return row;
+        }),
+        "Gagal membuat task.",
+      );
     },
-    [runMutation],
+    [runMutation, syncTaskToGcal],
   );
 
   const updateTask = useCallback(
     (id: string, patch: Partial<Task>) => {
-      runMutation(dbUpdateTask(id, patch), "Gagal menyimpan perubahan task.");
+      runMutation(
+        dbUpdateTask(id, patch).then((r) => {
+          // due/judul/status berubah bisa berarti event perlu dibuat/diubah/dihapus
+          if ("due_at" in patch || "title" in patch || "status" in patch || "notes" in patch) {
+            syncTaskToGcal(id);
+          }
+          return r;
+        }),
+        "Gagal menyimpan perubahan task.",
+      );
     },
-    [runMutation],
+    [runMutation, syncTaskToGcal],
   );
 
   const toggleFocusToday = useCallback(

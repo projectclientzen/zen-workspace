@@ -250,8 +250,8 @@ Push notification browser sungguhan tadinya ditunda ke v1.1 — **sekarang diker
 
 Menunggu OAuth Client Google dari user (lihat BE_Tasks Sprint N GCAL-1) sebelum FE bisa mulai — perlu tombol "Hubungkan Google Calendar" di Settings yang redirect ke route OAuth start, dan indikator status terhubung/tidak.
 
-- [ ] **GCAL-FE-1 Tombol hubungkan** di Settings, redirect ke `/api/auth/google/start`.
-- [ ] **GCAL-FE-2 Status koneksi** tampilkan email Google yang terhubung + tombol putuskan.
+- [x] **GCAL-FE-1 Tombol hubungkan** — card Google Calendar di Settings, redirect ke `/api/auth/google/start`; toast feedback hasil OAuth dari query `?gcal=`.
+- [x] **GCAL-FE-2 Status koneksi** — `/api/gcal/status` menampilkan email Google terhubung + tombol Putuskan (revoke token + hapus baris).
 
 ## Bug ditemukan user & sudah diperbaiki
 
