@@ -4,30 +4,54 @@
 // dan belum di-push (reminders.pushed_at is null).
 //
 // Proteksi: bukan verify_jwt (dipanggil server-to-server oleh pg_cron, bukan
-// user login), tapi cek header x-cron-secret cocok dengan env CRON_SECRET.
-// Secret (SUPABASE_SERVICE_ROLE_KEY otomatis disediakan Supabase; VAPID_*
-// dan CRON_SECRET harus diisi manual lewat Supabase Dashboard -> Edge Functions
-// -> send-push -> Secrets, JANGAN taruh di kode atau migration).
+// user login), tapi cek header x-cron-secret cocok dengan CRON_SECRET.
+// Secret VAPID_* dan CRON_SECRET dibaca dari tabel private.app_secrets
+// (schema private, tanpa grant ke anon/authenticated — hanya service role
+// yang bisa baca). Env Deno tetap dipakai sebagai override kalau diisi.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY")!;
-const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
-const CRON_SECRET = Deno.env.get("CRON_SECRET");
 const VAPID_CONTACT = Deno.env.get("VAPID_CONTACT_EMAIL") || "mailto:admin@example.com";
 
-webpush.setVapidDetails(VAPID_CONTACT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+async function loadSecrets(): Promise<Record<string, string>> {
+  // Schema private tidak diekspos PostgREST — baca lewat RPC security definer
+  // get_app_secrets() (execute hanya untuk service_role).
+  const { data, error } = await admin.rpc("get_app_secrets");
+  if (error) throw new Error(`gagal baca app_secrets: ${error.message}`);
+  const out: Record<string, string> = {};
+  for (const row of data ?? []) out[row.key] = row.value;
+  for (const k of ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "CRON_SECRET"]) {
+    const env = Deno.env.get(k);
+    if (env) out[k] = env;
+  }
+  return out;
+}
+
+const secretsPromise = loadSecrets();
 
 Deno.serve(async (req: Request) => {
-  if (CRON_SECRET) {
+  let secrets: Record<string, string>;
+  try {
+    secrets = await secretsPromise;
+  } catch (err) {
+    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+  }
+
+  if (secrets.CRON_SECRET) {
     const provided = req.headers.get("x-cron-secret");
-    if (provided !== CRON_SECRET) {
+    if (provided !== secrets.CRON_SECRET) {
       return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
     }
   }
+  if (!secrets.VAPID_PUBLIC_KEY || !secrets.VAPID_PRIVATE_KEY) {
+    return new Response(JSON.stringify({ error: "VAPID keys belum diisi" }), { status: 500 });
+  }
+  webpush.setVapidDetails(VAPID_CONTACT, secrets.VAPID_PUBLIC_KEY, secrets.VAPID_PRIVATE_KEY);
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
