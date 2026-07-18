@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { Check, Star } from "lucide-react";
+import { Check, Star, Trash2 } from "lucide-react";
 import { RecurringGlyph } from "@/components/common/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,7 +30,7 @@ function fmtDue(iso: string | null) {
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { dataset, updateTask, openTaskDetail, openTaskForm } = useAppState();
+  const { dataset, updateTask, softDeleteTask, pushToast, openTaskDetail, openTaskForm } = useAppState();
   const [tab, setTab] = useState<"list" | "board" | "today">("list");
   const [fStatus, setFStatus] = useState<"all" | TaskStatus>("all");
   const [fPrio, setFPrio] = useState<"all" | Priority>("all");
@@ -83,6 +83,18 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       >
         {fmtDue(t.due_at)}
       </span>
+      <button
+        className="flex h-8 w-8 flex-none items-center justify-center rounded-md text-faint hover:bg-destructive/10 hover:text-destructive"
+        aria-label={`Hapus task ${t.title}`}
+        title="Hapus task"
+        onClick={(e) => {
+          e.stopPropagation();
+          softDeleteTask(t.id);
+          pushToast("Task dihapus.");
+        }}
+      >
+        <Trash2 className="size-3.5" />
+      </button>
     </div>
   );
 
