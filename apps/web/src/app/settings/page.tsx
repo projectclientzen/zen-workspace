@@ -172,7 +172,7 @@ function usePushNotification() {
     const reg = await navigator.serviceWorker.ready;
     reg.showNotification("Zen · Test Notifikasi", {
       body: "Push notification aktif dan berjalan.",
-      icon: "/icons/icon-192.png",
+      icon: "/icon-192.png",
     });
   };
 
