@@ -26,6 +26,7 @@ import {
   dbSaveWeeklyReview,
   dbSeedDefaultProjects,
   dbToggleRule,
+  dbDeleteRule,
   dbUpdateIdea,
   dbUpdateProject,
   dbUpdateTask,
@@ -117,6 +118,7 @@ interface AppState {
   // Recurring rules
   addRule: (input: Partial<RecurringRule> & { title_template: string; frequency: RecurringRule["frequency"] }) => void;
   toggleRule: (id: string) => void;
+  deleteRule: (id: string) => void;
 
   // Reminders
   dismissReminder: (id: string) => void;
@@ -491,6 +493,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [dataset.recurringRules, runMutation],
   );
 
+  const deleteRule = useCallback(
+    (id: string) => {
+      runMutation(dbDeleteRule(id), "Gagal menghapus rutinitas.");
+    },
+    [runMutation],
+  );
+
   // ---------- Reminders ----------
   const dismissReminder = useCallback(
     (id: string) => {
@@ -590,6 +599,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     upsertCheckin,
     addRule,
     toggleRule,
+    deleteRule,
     dismissReminder,
     saveWeeklyReview,
     addTimeBlock,

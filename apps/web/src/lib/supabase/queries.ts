@@ -395,6 +395,12 @@ export async function dbToggleRule(id: string, isActive: boolean) {
   if (error) throw error;
 }
 
+export async function dbDeleteRule(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("recurring_rules").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function dbDismissReminder(id: string) {
   const supabase = createClient();
   const { error } = await supabase.rpc("dismiss_reminder", { p_reminder_id: id, p_status: "dismissed" });
