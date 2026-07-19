@@ -130,6 +130,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           <NavItem href="/ideation" label="Ideation" active={pathname === "/ideation"} onNavigate={onNavigate} />
           <NavItem href="/inbox" label="Inbox" active={pathname === "/inbox"} onNavigate={onNavigate} />
           <NavItem href="/calendar" label="Calendar" active={pathname === "/calendar"} onNavigate={onNavigate} />
+          <NavItem href="/routines" label="Rutinitas" active={pathname === "/routines"} onNavigate={onNavigate} />
           <NavItem
             href="/weekly-review"
             label="Weekly Review"

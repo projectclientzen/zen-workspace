@@ -49,6 +49,18 @@ Reminder pending hari ini (WIB) yang sudah jatuh tempo — cocok diteruskan ke W
 { "ok": true, "reminders": [{ "id", "target_type", "target_id", "remind_at", "status", "payload" }] }
 ```
 
+### `GET /api/agent/routines`
+Pantau pekerjaan rutin: definisi rutinitas + instance yang jatuh hari ini (WIB) beserta status.
+```json
+{
+  "ok": true,
+  "summary": { "total_today": 4, "done_today": 1, "pending_today": 3 },
+  "today": [{ "id", "title", "status", "done", "priority", "due_at", "is_overdue", "recurring_rule_id" }],
+  "rules": [{ "id", "title_template", "priority", "frequency", "weekdays", "day_of_month", "time_of_day", "is_active", "project_id" }]
+}
+```
+Pola pakai Hermes: polling pagi/sore → laporkan rutinitas yang belum selesai (`pending_today`) ke WhatsApp.
+
 ### `POST /api/agent/task`
 Buat task. `project_name` opsional, dicocokkan longgar ke project aktif (404 kalau tidak ketemu); tanpa project → masuk Inbox.
 ```json
