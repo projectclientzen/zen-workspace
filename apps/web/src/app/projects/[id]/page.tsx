@@ -50,53 +50,76 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const todayTasks = getTodayTasks(dataset, id);
 
-  const renderRow = (t: Task) => (
-    <div
-      key={t.id}
-      className="flex cursor-pointer items-center gap-2.5 border-b border-border px-4 py-3 last:border-b-0 hover:bg-muted/30"
-      onClick={() => openTaskDetail(t.id)}
-    >
-      <button
-        className="flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full border-[1.5px] border-faint text-[11px] text-transparent hover:border-primary hover:text-primary"
-        onClick={(e) => {
-          e.stopPropagation();
-          updateTask(t.id, {
-            status: t.status === "done" ? "todo" : "done",
-            completed_at: t.status === "done" ? null : new Date().toISOString(),
-          });
-        }}
-      >
-        <Check className="size-3" />
-      </button>
-      <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">
-        {t.source === "recurring" && <RecurringGlyph className="mr-1" />}
-        {t.title}
-      </span>
-      <span className="flex-none rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-        {t.priority}
-      </span>
-      <span className="w-[52px] flex-none text-right text-[10.5px] text-muted-foreground">{t.status}</span>
-      <span
-        className={`w-[70px] flex-none text-right text-[10.5px] font-semibold ${
-          t.is_overdue ? "text-destructive" : "text-muted-foreground"
+  const renderRow = (t: Task) => {
+    const isDone = t.status === "done";
+    return (
+      <div
+        key={t.id}
+        className={`flex cursor-pointer items-center gap-2.5 border-b border-border px-4 py-3 last:border-b-0 hover:bg-muted/30 ${
+          isDone ? "bg-primary/[0.06]" : ""
         }`}
+        onClick={() => openTaskDetail(t.id)}
       >
-        {fmtDue(t.due_at)}
-      </span>
-      <button
-        className="flex h-8 w-8 flex-none items-center justify-center rounded-md text-faint hover:bg-destructive/10 hover:text-destructive"
-        aria-label={`Hapus task ${t.title}`}
-        title="Hapus task"
-        onClick={(e) => {
-          e.stopPropagation();
-          softDeleteTask(t.id);
-          pushToast("Task dihapus.");
-        }}
-      >
-        <Trash2 className="size-3.5" />
-      </button>
-    </div>
-  );
+        <button
+          className={`flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full border-[1.5px] text-[11px] ${
+            isDone
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-faint text-transparent hover:border-primary hover:text-primary"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            updateTask(t.id, {
+              status: isDone ? "todo" : "done",
+              completed_at: isDone ? null : new Date().toISOString(),
+            });
+          }}
+        >
+          <Check className="size-3" />
+        </button>
+        <span
+          className={`min-w-0 flex-1 truncate text-[13.5px] font-medium ${
+            isDone ? "text-muted-foreground line-through decoration-primary/60" : ""
+          }`}
+        >
+          {t.source === "recurring" && <RecurringGlyph className="mr-1" />}
+          {t.title}
+        </span>
+        <span className="flex-none rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+          {t.priority}
+        </span>
+        {isDone ? (
+          <span className="flex w-[52px] flex-none items-center justify-end gap-1 text-[10px] font-bold uppercase tracking-wide text-primary">
+            <Check className="size-3" /> Done
+          </span>
+        ) : (
+          <span className="w-[52px] flex-none text-right text-[10.5px] text-muted-foreground">{t.status}</span>
+        )}
+        <span
+          className={`w-[70px] flex-none text-right text-[10.5px] font-semibold ${
+            isDone
+              ? "text-muted-foreground line-through"
+              : t.is_overdue
+                ? "text-destructive"
+                : "text-muted-foreground"
+          }`}
+        >
+          {fmtDue(t.due_at)}
+        </span>
+        <button
+          className="flex h-8 w-8 flex-none items-center justify-center rounded-md text-faint hover:bg-destructive/10 hover:text-destructive"
+          aria-label={`Hapus task ${t.title}`}
+          title="Hapus task"
+          onClick={(e) => {
+            e.stopPropagation();
+            softDeleteTask(t.id);
+            pushToast("Task dihapus.");
+          }}
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="mx-auto max-w-[1160px] px-4 py-6 sm:px-7">
