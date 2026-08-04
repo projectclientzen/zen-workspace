@@ -1,45 +1,45 @@
-import { createClient } from "@/lib/supabase/client";
-
-const BUCKET = "attachments";
-
-/** Upload gambar ke bucket privat "attachments", path {user_id}/{kind}/{timestamp}-{filename}. */
+/**
+ * Upload gambar. Media baru masuk ke Cloudflare R2 lewat POST /api/r2/upload
+ * (kredensial R2 tidak pernah ke client — hanya dipakai server-side di route
+ * itu). Return path format {user_id}/{kind}/{timestamp}-{filename}, sama
+ * persis dengan skema path Supabase lama supaya kompatibel di kedua sisi.
+ */
 export async function uploadAttachment(
   file: File,
   kind: "tasks" | "ideas",
 ): Promise<string> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Belum login");
+  const form = new FormData();
+  form.append("file", file);
+  form.append("kind", kind);
 
-  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-  const path = `${user.id}/${kind}/${Date.now()}-${safeName}`;
-
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-    upsert: false,
-    contentType: file.type,
-  });
-  if (error) throw error;
-
-  return path;
+  const res = await fetch("/api/r2/upload", { method: "POST", body: form });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || "Upload gagal");
+  return data.path as string;
 }
 
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
-/** Resolve path storage jadi signed URL sementara (di-cache 50 menit, expiry asli 60 menit). */
+/**
+ * Resolve path storage jadi signed URL sementara (di-cache 50 menit, expiry
+ * asli 60 menit).
+ *  - "data:" → data URL lama dari mock FE, tampilkan apa adanya.
+ *  - selain itu → lewat GET /api/r2/signed-url, yang di server-nya sendiri
+ *    coba R2 dulu lalu fallback ke Supabase Storage untuk path lama (path
+ *    lama & baru berformat identik, jadi tidak bisa dibedakan di client).
+ */
 export async function getSignedImageUrl(path: string | null): Promise<string | null> {
   if (!path) return null;
-  // Data lama dari mock FE sebelum backend nyambung masih base64 data URL — tampilkan apa adanya.
   if (path.startsWith("data:")) return path;
 
   const cached = signedUrlCache.get(path);
   if (cached && cached.expiresAt > Date.now()) return cached.url;
 
-  const supabase = createClient();
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
-  if (error || !data) return null;
+  const res = await fetch(`/api/r2/signed-url?path=${encodeURIComponent(path)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.url) return null;
 
-  signedUrlCache.set(path, { url: data.signedUrl, expiresAt: Date.now() + 50 * 60 * 1000 });
-  return data.signedUrl;
+  const url = data.url as string;
+  signedUrlCache.set(path, { url, expiresAt: Date.now() + 50 * 60 * 1000 });
+  return url;
 }
