@@ -5,6 +5,7 @@ import { AppStateProvider } from "@/lib/app-state";
 import { PrefsProvider, THEME_INIT_SCRIPT } from "@/lib/prefs";
 import { AppShell } from "@/components/layout/app-shell";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
+import { ChunkErrorReload } from "@/components/common/chunk-error-reload";
 
 const newsreader = Newsreader({
   variable: "--font-newsreader",
@@ -57,6 +58,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <RegisterServiceWorker />
+        <ChunkErrorReload />
         <PrefsProvider>
           <AppStateProvider>
             <AppShell>{children}</AppShell>
